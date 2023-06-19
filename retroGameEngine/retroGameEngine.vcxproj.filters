@@ -18,9 +18,15 @@
     <ClCompile Include="ImguiTemplate_d3d9.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="rgeDrawing.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="rgeStructs.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rgeDrawing.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

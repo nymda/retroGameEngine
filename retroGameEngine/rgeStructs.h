@@ -35,6 +35,21 @@ namespace RGE {
 		char G = 0;
 		char B = 0;
 		char A = 255;
+
+		RGBA(int R, int G, int B, int A = 255) {
+			this->R = R;
+			this->G = G;
+			this->B = B;
+			this->A = A;
+		}
+
+		RGBA() {
+			this->R = 0;
+			this->G = 0;
+			this->B = 0;
+			this->A = 255;
+		}
+
 	};
 
 	struct fVec2 {
@@ -78,6 +93,16 @@ namespace RGE {
 		iVec2 getFrameBufferSize() {
 			return frameBufferSize;
 		}
+
+		void fillFrameBuffer(RGBA colour) {
+			int size = frameBufferSize.X * frameBufferSize.Y;
+			for (int i = 0; i < size; i++) {
+				frameBuffer[i] = colour;
+			}
+		}
+
+		void frameBufferDrawPixel(iVec2 location, RGBA colour);
+		void frameBufferDrawLine(iVec2 p1, iVec2 p2, RGBA colour);
 
 		RGEngine() {
 

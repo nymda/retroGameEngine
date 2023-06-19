@@ -143,8 +143,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ImguiTemplate_d3d9.cpp" />
+    <ClCompile Include="rgeDrawing.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="rgeDrawing.h" />
     <ClInclude Include="rgeStructs.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

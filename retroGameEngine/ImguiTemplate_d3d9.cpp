@@ -26,6 +26,8 @@ int main()
     HWND hwnd = ::CreateWindow(wc.lpszClassName, _T("RGE"), WS_OVERLAPPEDWINDOW, 100, 100, 640, 480, NULL, NULL, wc.hInstance, NULL);
 
     engine->allocFrameBuffer({ 640, 480 });
+    engine->fillFrameBuffer(RGE::RGBA(255, 0, 255));
+    engine->frameBufferDrawLine({ 0, 0 }, { 640, 480 }, RGE::RGBA(255, 255, 255));
 
     // Initialize Direct3D
     if (!CreateDeviceD3D(hwnd))
