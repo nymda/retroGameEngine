@@ -103,6 +103,8 @@ namespace RGE {
 
 		void frameBufferDrawPixel(iVec2 location, RGBA colour);
 		void frameBufferDrawLine(iVec2 p1, iVec2 p2, RGBA colour);
+		void frameBufferDrawRect(iVec2 p1, iVec2 p2, RGBA colour);
+		void frameBufferFillRect(iVec2 p1, iVec2 p2, RGBA colour);
 
 		RGEngine() {
 

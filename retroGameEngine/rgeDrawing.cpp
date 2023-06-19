@@ -7,7 +7,6 @@ void RGE::RGEngine::frameBufferDrawPixel(iVec2 location, RGBA colour)
 	this->getFrameBuffer()[pLocation] = colour;
 }
 
-
 void RGE::RGEngine::frameBufferDrawLine(iVec2 p1, iVec2 p2, RGBA colour)
 {
     short w = (short)(p2.X - p1.X);
@@ -49,4 +48,9 @@ void RGE::RGEngine::frameBufferDrawLine(iVec2 p1, iVec2 p2, RGBA colour)
             p1.Y += dy2;
         }
     }
+}
+
+void RGE::RGEngine::frameBufferDrawRect(iVec2 p1, iVec2 p2, RGBA colour)
+{
+
 }
