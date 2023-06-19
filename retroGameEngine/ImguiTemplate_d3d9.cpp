@@ -3,7 +3,7 @@
 #define DIRECTINPUT_VERSION 0x0800
 #include <dinput.h>
 #include <tchar.h>
-#include "structs.h"
+#include "rgeStructs.h"
 
 static LPDIRECT3D9              g_pD3D = NULL;
 static LPDIRECT3DDEVICE9        g_pd3dDevice = NULL;
@@ -17,7 +17,7 @@ IDirect3DSurface9* surface;
 const RECT window = { 0, 0, 640, 480 };
 D3DLOCKED_RECT draw;
 
-RGE* engine = new RGE();
+RGE::RGEngine* engine = new RGE::RGEngine();
 
 int main()
 {
@@ -65,7 +65,7 @@ int main()
 
             char* data = (char*)draw.pBits;
 
-            RGBA* engineFrameBuffer = engine->getFrameBuffer();
+            RGE::RGBA* engineFrameBuffer = engine->getFrameBuffer();
             int pc = 0;
 
             for (int y = 0; y < 480; y++)

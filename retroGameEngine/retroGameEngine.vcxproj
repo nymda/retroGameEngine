@@ -145,7 +145,7 @@
     <ClCompile Include="ImguiTemplate_d3d9.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="structs.h" />
+    <ClInclude Include="rgeStructs.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

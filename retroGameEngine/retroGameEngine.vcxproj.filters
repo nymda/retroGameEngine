@@ -20,7 +20,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="structs.h">
+    <ClInclude Include="rgeStructs.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
