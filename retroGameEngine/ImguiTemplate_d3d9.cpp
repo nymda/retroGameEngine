@@ -1,11 +1,9 @@
 #include <iostream>
-#include "imgui.h"
-#include "imgui_impl_dx9.h"
-#include "imgui_impl_win32.h"
 #include <d3d9.h>
 #define DIRECTINPUT_VERSION 0x0800
 #include <dinput.h>
 #include <tchar.h>
+#include "structs.h"
 
 static LPDIRECT3D9              g_pD3D = NULL;
 static LPDIRECT3DDEVICE9        g_pd3dDevice = NULL;
@@ -13,14 +11,21 @@ static D3DPRESENT_PARAMETERS    g_d3dpp = {};
 
 bool CreateDeviceD3D(HWND hWnd);
 void CleanupDeviceD3D();
-void ResetDevice();
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+LPDIRECT3DSURFACE9 backbuffer;
+IDirect3DSurface9* surface;
+const RECT window = { 0, 0, 640, 480 };
+D3DLOCKED_RECT draw;
+
+RGE* engine = new RGE();
 
 int main()
 {
     WNDCLASSEX wc = { sizeof(WNDCLASSEX), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(NULL), NULL, NULL, NULL, NULL, _T("RGE"), NULL };
     ::RegisterClassEx(&wc);
-    HWND hwnd = ::CreateWindow(wc.lpszClassName, _T("RGW"), WS_OVERLAPPEDWINDOW, 100, 100, 1280, 720, NULL, NULL, wc.hInstance, NULL);
+    HWND hwnd = ::CreateWindow(wc.lpszClassName, _T("RGE"), WS_OVERLAPPEDWINDOW, 100, 100, 640, 480, NULL, NULL, wc.hInstance, NULL);
+
+    engine->allocFrameBuffer({ 640, 480 });
 
     // Initialize Direct3D
     if (!CreateDeviceD3D(hwnd))
@@ -34,21 +39,11 @@ int main()
     ::ShowWindow(hwnd, SW_SHOWDEFAULT);
     ::UpdateWindow(hwnd);
 
-    // Setup Dear ImGui context
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO();
-    ImGui::StyleColorsDark();
-
-    ImGui_ImplWin32_Init(hwnd);
-    ImGui_ImplDX9_Init(g_pd3dDevice);
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.f);
-
-    ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
-
-
     MSG msg;
     ZeroMemory(&msg, sizeof(msg));
+
+    g_pd3dDevice->CreateOffscreenPlainSurface(640, 480, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &surface, NULL);
+
     while (msg.message != WM_QUIT)
     {
 
@@ -59,48 +54,46 @@ int main()
             continue;
         }
 
-        ImGui_ImplDX9_NewFrame();
-        ImGui_ImplWin32_NewFrame();
-
-        ImGuiIO& io = ImGui::GetIO();
-        ImVec2 whole_content_size = io.DisplaySize;
-        ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration;
-
-        ImGui::NewFrame();
-        ImGui::SetNextWindowPos({ 0, 0 });
-        ImGui::SetNextWindowSize(whole_content_size);
-        ImGui::Begin("ImguiTemplate", 0, flags);
-        ImGui::Text("ImGui template - d3d9");
-
-        //
-        // GUI DRAW CODE HERE
-        //
-
-        ImGui::End();
-        ImGui::EndFrame();
-
         g_pd3dDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
         g_pd3dDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
         g_pd3dDevice->SetRenderState(D3DRS_SCISSORTESTENABLE, FALSE);
-        D3DCOLOR clear_col_dx = D3DCOLOR_RGBA((int)(clear_color.x * 255.0f), (int)(clear_color.y * 255.0f), (int)(clear_color.z * 255.0f), (int)(clear_color.w * 255.0f));
+        D3DCOLOR clear_col_dx = D3DCOLOR_RGBA(100, 100, 100, 255);
         g_pd3dDevice->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, clear_col_dx, 1.0f, 0);
         if (g_pd3dDevice->BeginScene() >= 0)
         {
-            ImGui::Render();
-            ImGui_ImplDX9_RenderDrawData(ImGui::GetDrawData());
+            surface->LockRect(&draw, &window, D3DLOCK_DISCARD);
+
+            char* data = (char*)draw.pBits;
+
+            RGBA* engineFrameBuffer = engine->getFrameBuffer();
+            int pc = 0;
+
+            for (int y = 0; y < 480; y++)
+            {
+                DWORD* row = (DWORD*)data;
+                for (int x = 0; x < 640; x++)
+                {
+                    DWORD cPix = *(DWORD*)&(engineFrameBuffer[pc]);
+                    *row++ = cPix;
+                    pc++;
+                }
+                data += draw.Pitch;
+            }
+
+            surface->UnlockRect();
+
+            g_pd3dDevice->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &backbuffer);
+            g_pd3dDevice->StretchRect(surface, NULL, backbuffer, NULL, D3DTEXF_LINEAR);
+
             g_pd3dDevice->EndScene();
         }
         HRESULT result = g_pd3dDevice->Present(NULL, NULL, NULL, NULL);
 
         // Handle loss of D3D9 device
         if (result == D3DERR_DEVICELOST && g_pd3dDevice->TestCooperativeLevel() == D3DERR_DEVICENOTRESET) {
-            ResetDevice();
+
         }
     }
-
-    ImGui_ImplDX9_Shutdown();
-    ImGui_ImplWin32_Shutdown();
-    ImGui::DestroyContext();
 
     CleanupDeviceD3D();
     ::DestroyWindow(hwnd);
@@ -136,24 +129,10 @@ void CleanupDeviceD3D()
     if (g_pD3D) { g_pD3D->Release(); g_pD3D = NULL; }
 }
 
-void ResetDevice()
-{
-    ImGui_ImplDX9_InvalidateDeviceObjects();
-    HRESULT hr = g_pd3dDevice->Reset(&g_d3dpp);
-    if (hr == D3DERR_INVALIDCALL)
-        IM_ASSERT(0);
-    ImGui_ImplDX9_CreateDeviceObjects();
-}
-
-// Forward declare message handler from imgui_impl_win32.cpp
-extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 // Win32 message handler
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-    if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
-        return true;
-
     switch (msg)
     {
     case WM_SIZE:
@@ -161,7 +140,6 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
         {
             g_d3dpp.BackBufferWidth = LOWORD(lParam);
             g_d3dpp.BackBufferHeight = HIWORD(lParam);
-            ResetDevice();
         }
         return 0;
     case WM_SYSCOMMAND:
