@@ -26,8 +26,6 @@ int main()
     HWND hwnd = ::CreateWindow(wc.lpszClassName, _T("RGE"), WS_OVERLAPPEDWINDOW, 100, 100, 640, 480, NULL, NULL, wc.hInstance, NULL);
 
     engine->allocFrameBuffer({ 640, 480 });
-    engine->fillFrameBuffer(RGE::RGBA(255, 0, 255));
-    engine->frameBufferDrawLine({ 0, 0 }, { 640, 480 }, RGE::RGBA(255, 255, 255));
 
     // Initialize Direct3D
     if (!CreateDeviceD3D(hwnd))
@@ -63,6 +61,9 @@ int main()
         g_pd3dDevice->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, clear_col_dx, 1.0f, 0);
         if (g_pd3dDevice->BeginScene() >= 0)
         {
+            engine->fillFrameBuffer(RGE::RGBA(255, 0, 255));
+            engine->frameBufferDrawLine({ 0, 0 }, { 640, 480 }, RGE::RGBA(255, 255, 255));
+
             surface->LockRect(&draw, &window, D3DLOCK_DISCARD);
 
             char* data = (char*)draw.pBits;
