@@ -18,6 +18,12 @@ const RECT window = { 0, 0, 640, 480 };
 D3DLOCKED_RECT draw;
 
 RGE::RGEngine* engine = new RGE::RGEngine();
+float lastFps = -1.f;
+
+DWORD fixColourOrder(DWORD val)
+{
+    return ((val << 24) | ((val << 8) & 0x00ff0000) | ((val >> 8) & 0x0000ff00) | ((val >> 24) & 0x000000ff)) >> 8;
+}
 
 int main()
 {
@@ -26,7 +32,7 @@ int main()
     HWND hwnd = ::CreateWindow(wc.lpszClassName, _T("RGE"), WS_OVERLAPPEDWINDOW, 100, 100, 640, 480, NULL, NULL, wc.hInstance, NULL);
 
     engine->allocFrameBuffer({ 640, 480 });
-
+    
     // Initialize Direct3D
     if (!CreateDeviceD3D(hwnd))
     {
@@ -61,9 +67,20 @@ int main()
         g_pd3dDevice->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, clear_col_dx, 1.0f, 0);
         if (g_pd3dDevice->BeginScene() >= 0)
         {
-            engine->fillFrameBuffer(RGE::RGBA(255, 0, 255));
-            engine->frameBufferDrawLine({ 0, 0 }, { 640, 480 }, RGE::RGBA(255, 255, 255));
+            engine->frameTimerBegin();
+            
+            engine->fillFrameBuffer(RGE::RGBA(100, 100, 100));
 
+            for (int i = 0; i < 640; i++) {
+				float completePercent = (float)i / 640.f;
+                engine->frameBufferFillRect({ i, 0 }, { i, 480 }, RGE::RGBA(0, 0, completePercent * 255));
+            }
+
+			char fps[32];
+			sprintf_s(fps, 32, "FPS: %.2f", engine->getFps());
+            
+			engine->fontRendererDrawString({ 5, 5 }, fps, 1);
+            
             surface->LockRect(&draw, &window, D3DLOCK_DISCARD);
 
             char* data = (char*)draw.pBits;
@@ -77,7 +94,11 @@ int main()
                 for (int x = 0; x < 640; x++)
                 {
                     DWORD cPix = *(DWORD*)&(engineFrameBuffer[pc]);
-                    *row++ = cPix;
+
+                    //this shit is so fucking annoying why cant d3d9 just support standard RGBA in the backbuffer
+                    //this loses hundreds of frames per second because i have to do a load of bitwise bullshit to every single pixel to fix it
+                    //using anything simpler drops me from 400fps to 60fps
+                    *row++ = fixColourOrder(cPix);
                     pc++;
                 }
                 data += draw.Pitch;
@@ -88,6 +109,9 @@ int main()
             g_pd3dDevice->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &backbuffer);
             g_pd3dDevice->StretchRect(surface, NULL, backbuffer, NULL, D3DTEXF_LINEAR);
 
+            engine->frameTimerEnd();
+            lastFps = engine->getFps();
+            
             g_pd3dDevice->EndScene();
         }
         HRESULT result = g_pd3dDevice->Present(NULL, NULL, NULL, NULL);

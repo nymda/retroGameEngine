@@ -1,4 +1,5 @@
 #pragma once
+#include <chrono>
 
 #define pi 3.14159265358979323846f
 
@@ -73,8 +74,25 @@ namespace RGE {
 
 	class RGEngine {
 	private:
+		
+		//frame buffer related
 		RGBA* frameBuffer = 0;
 		iVec2 frameBufferSize = { 0, 0 };
+
+		//clock related
+		std::chrono::steady_clock::time_point begin;
+		std::chrono::steady_clock::time_point end;
+		int frameTimeMicros = 0;
+
+		//font renderer related
+		RGBA* fontData = 0;
+		RGBA white = { 255, 255, 255, 255 };
+		RGBA black = { 0,   0,   0, 255 };
+		iVec2 fontMapSize = { 144, 101 };
+		int charX = 8;
+		int charY = 16;
+		
+		void initializeFontRenderer();
 
 	public:
 		player plr = {};
@@ -94,6 +112,23 @@ namespace RGE {
 			return frameBufferSize;
 		}
 
+		void frameTimerBegin() {
+			begin = std::chrono::steady_clock::now();
+		}
+		
+		void frameTimerEnd() {
+			end = std::chrono::steady_clock::now();
+			frameTimeMicros = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();	
+		}
+
+		float getFps() {
+			return (1000.f / ((float)frameTimeMicros / 1000.f));
+		}
+
+		int getFrameTimeMicros() {
+			return frameTimeMicros;
+		}
+		
 		void fillFrameBuffer(RGBA colour) {
 			int size = frameBufferSize.X * frameBufferSize.Y;
 			for (int i = 0; i < size; i++) {
@@ -105,9 +140,13 @@ namespace RGE {
 		void frameBufferDrawLine(iVec2 p1, iVec2 p2, RGBA colour);
 		void frameBufferDrawRect(iVec2 p1, iVec2 p2, RGBA colour);
 		void frameBufferFillRect(iVec2 p1, iVec2 p2, RGBA colour);
-
+		
+		int fontRendererDrawGlyph(RGE::iVec2 position, char c, int scale);
+		int fontRendererDrawString(RGE::iVec2 position, const char* text, int scale);
+		int fontRendererDrawSpacer(RGE::iVec2 position, int width, int scale);
+		
 		RGEngine() {
-
+			initializeFontRenderer();
 		}
 	};
 }

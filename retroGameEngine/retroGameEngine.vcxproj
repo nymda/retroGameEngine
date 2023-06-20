@@ -144,8 +144,10 @@
   <ItemGroup>
     <ClCompile Include="ImguiTemplate_d3d9.cpp" />
     <ClCompile Include="rgeDrawing.cpp" />
+    <ClCompile Include="rgeLogic.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="fontData.h" />
     <ClInclude Include="rgeDrawing.h" />
     <ClInclude Include="rgeStructs.h" />
   </ItemGroup>
