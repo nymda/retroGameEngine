@@ -20,11 +20,6 @@ D3DLOCKED_RECT draw;
 RGE::RGEngine* engine = new RGE::RGEngine();
 float lastFps = -1.f;
 
-DWORD fixColourOrder(DWORD val)
-{
-    return ((val << 24) | ((val << 8) & 0x00ff0000) | ((val >> 8) & 0x0000ff00) | ((val >> 24) & 0x000000ff)) >> 8;
-}
-
 int main()
 {
     WNDCLASSEX wc = { sizeof(WNDCLASSEX), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(NULL), NULL, NULL, NULL, NULL, _T("RGE"), NULL };
@@ -81,6 +76,8 @@ int main()
             
 			engine->fontRendererDrawString({ 5, 5 }, fps, 1);
             
+            //this takes up over 2/3rds of the frame time
+            
             surface->LockRect(&draw, &window, D3DLOCK_DISCARD);
 
             char* data = (char*)draw.pBits;
@@ -94,11 +91,7 @@ int main()
                 for (int x = 0; x < 640; x++)
                 {
                     DWORD cPix = *(DWORD*)&(engineFrameBuffer[pc]);
-
-                    //this shit is so fucking annoying why cant d3d9 just support standard RGBA in the backbuffer
-                    //this loses hundreds of frames per second because i have to do a load of bitwise bullshit to every single pixel to fix it
-                    //using anything simpler drops me from 400fps to 60fps
-                    *row++ = fixColourOrder(cPix);
+                    *row++ = ((cPix << 24) | ((cPix << 8) & 0x00ff0000) | ((cPix >> 8) & 0x0000ff00) | ((cPix >> 24) & 0x000000ff)) >> 8;
                     pc++;
                 }
                 data += draw.Pitch;
@@ -109,6 +102,8 @@ int main()
             g_pd3dDevice->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &backbuffer);
             g_pd3dDevice->StretchRect(surface, NULL, backbuffer, NULL, D3DTEXF_LINEAR);
 
+            //i must be doing something wrong for it to be this slow
+            
             engine->frameTimerEnd();
             lastFps = engine->getFps();
             
