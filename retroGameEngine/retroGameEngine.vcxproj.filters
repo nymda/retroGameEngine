@@ -24,15 +24,18 @@
     <ClCompile Include="rgeLogic.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="rgeTools.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="rgeStructs.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="rgeDrawing.h">
+    <ClInclude Include="rgeBase.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="fontData.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rgeTools.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

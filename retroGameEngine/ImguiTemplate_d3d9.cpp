@@ -3,7 +3,7 @@
 #define DIRECTINPUT_VERSION 0x0800
 #include <dinput.h>
 #include <tchar.h>
-#include "rgeStructs.h"
+#include "rgeBase.h"
 
 static LPDIRECT3D9              g_pD3D = NULL;
 static LPDIRECT3DDEVICE9        g_pd3dDevice = NULL;
@@ -21,6 +21,69 @@ RGE::RGEngine* engine = new RGE::RGEngine();
 RGE::RGBA* frameBuffer = 0;
 float lastFps = -1.f;
 
+enum dispMode {
+    map = 0,
+    render = 1
+};
+
+dispMode mode = dispMode::map;
+fVec2 playerVelocity = { 0, 0 };
+
+//fires 60 times per second
+void timerCallback(HWND unnamedParam1, UINT unnamedParam2, UINT_PTR unnamedParam3, DWORD unnamedParam4) {
+    if (GetKeyState(VK_LEFT) < 0) {
+        engine->plr->angle -= (pi / 2.f) / 30.f;
+        if (engine->plr->angle < 0.f) {
+            engine->plr->angle += (pi * 2.f);
+        }
+    }
+
+    if (GetKeyState(VK_RIGHT) < 0) {
+        engine->plr->angle += (pi / 2.f) / 30.f;
+        if (engine->plr->angle > (pi * 2.f)) {
+            engine->plr->angle -= (pi * 2.f);
+        }
+    }
+
+    if (GetKeyState(VK_UP) < 0) {
+        fVec2 forward = angleToVector(engine->plr->angle);
+        playerVelocity.X += forward.X * 5.f;
+        playerVelocity.Y += forward.Y * 5.f;
+    }
+
+    if (GetKeyState(VK_DOWN) < 0) {
+        fVec2 forward = angleToVector(engine->plr->angle);
+        playerVelocity.X -= forward.X * 5.f;
+        playerVelocity.Y -= forward.Y * 5.f;
+    }
+
+    if (GetKeyState(0x51) < 0) {
+        fVec2 left = angleToVector(engine->plr->angle - (pi / 2.f));
+        playerVelocity.X += left.X * 5.f;
+        playerVelocity.Y += left.Y * 5.f;
+    }
+
+    if (GetKeyState(0x45) < 0) {
+        fVec2 right = angleToVector(engine->plr->angle + (pi / 2.f));
+        playerVelocity.X += right.X * 5.f;
+        playerVelocity.Y += right.Y * 5.f;
+    }
+
+    //this mats is broken, but oh well
+
+    if (vectorLength(playerVelocity) > 7.f) {
+        playerVelocity = normalise(playerVelocity);
+        playerVelocity.X *= 7.f;
+        playerVelocity.Y *= 7.f;
+    }
+
+    engine->plr->position.X += playerVelocity.X;
+    engine->plr->position.Y += playerVelocity.Y;
+
+    playerVelocity.X -= playerVelocity.X / 5.f;
+    playerVelocity.Y -= playerVelocity.Y / 5.f;;
+}
+
 int main()
 {
     WNDCLASSEX wc = { sizeof(WNDCLASSEX), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(NULL), NULL, NULL, NULL, NULL, _T("RGE"), NULL };
@@ -29,7 +92,28 @@ int main()
 
     engine->allocFrameBuffer({ 640, 480 });
     frameBuffer = engine->getFrameBuffer();
-    
+
+    RGE::wall T;
+    T.line = { {25, 25}, {640 - 25, 25} };
+    T.colour = RGE::RGBA(255, 255, 255, 255);
+
+    RGE::wall B;
+    B.line = { {25, 480 - 25}, {640 - 25, 480 - 25} };
+    B.colour = RGE::RGBA(255, 255, 255, 255);
+
+    RGE::wall L;
+    L.line = { {25, 25}, {25, 480 - 25} };
+    L.colour = RGE::RGBA(255, 255, 255, 255);
+
+    RGE::wall R;
+    R.line = { {640 - 25, 25}, {640 - 25, 480 - 25} };
+    R.colour = RGE::RGBA(255, 255, 255, 255);
+
+    engine->map->addStaticWall(T);
+    engine->map->addStaticWall(B);
+    engine->map->addStaticWall(L);
+    engine->map->addStaticWall(R);
+
     // Initialize Direct3D
     if (!CreateDeviceD3D(hwnd))
     {
@@ -44,6 +128,8 @@ int main()
 
     MSG msg;
     ZeroMemory(&msg, sizeof(msg));
+
+    SetTimer(NULL, 1, 1000 / 60, timerCallback);
 
     g_pd3dDevice->CreateOffscreenPlainSurface(640, 480, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &surface, NULL);
 
@@ -68,18 +154,37 @@ int main()
         {
             engine->frameTimerBegin();
             
-            engine->fillFrameBuffer(RGE::RGBA(100, 100, 100));
+            //drawing begin
 
-            for (int i = 0; i < 640; i++) {
-				float completePercent = (float)i / 640.f;
-                engine->frameBufferFillRect({ i, 0 }, { i, 480 }, RGE::RGBA(0, 0, completePercent * 255));
+            engine->fillFrameBuffer(RGE::RGBA(0, 0, 0));
+
+            if (mode == dispMode::map) {
+                for (RGE::wall& w : engine->map->build()) {
+                    iVec2 p1Int = { (int)w.line.p1.X, (int)w.line.p1.Y };
+                    iVec2 p2Int = { (int)w.line.p2.X, (int)w.line.p2.Y };
+                    engine->frameBufferDrawLine(p1Int, p2Int, w.colour);
+                }
+            }
+
+            for (int i = 0; i < 320; i++) {
+
+                float FOV = (pi / 2.f) / 1.75f;
+                float angleStep = FOV / 320;
+                float offsetAngle = (engine->plr->angle - (FOV / 2.f)) + (angleStep * (float)i);
+
+                RGE::raycastResponse hinf = {};
+
+                if (engine->castRay(engine->plr->position, offsetAngle, 0.f, 1000.f, &hinf)) {
+                    engine->frameBufferDrawLine(engine->plr->position, hinf.impacts[0].position, hinf.impacts[0].surfaceColour);
+                }
             }
 
 			char fps[32];
-			sprintf_s(fps, 32, "FPS: %.2f", engine->getFps());
-            
+			sprintf_s(fps, 32, "FPS: %.2f", lastFps);      
 			engine->fontRendererDrawString({ 5, 5 }, fps, 1);
             
+            //drawing end
+
             //this takes up over half of the frame time
             
             surface->LockRect(&draw, &window, D3DLOCK_DISCARD);

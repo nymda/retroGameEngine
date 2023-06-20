@@ -1,11 +1,16 @@
-#include "rgeDrawing.h"
+#include "rgeBase.h"
 #include "fontData.h"
 #include <cstdlib>
 #include <string.h>
 
 void RGE::RGEngine::frameBufferDrawPixel(iVec2 location, RGBA colour)
 {
-	int pLocation = (location.Y * this->getFrameBufferSize().X) + location.X;
+    iVec2 fbSize = this->getFrameBufferSize();
+	int pLocation = (location.Y * fbSize.X) + location.X;
+    if (pLocation > (fbSize.X * fbSize.Y)) { return; }
+    if (pLocation < 0) { 
+        return; 
+    }
 	this->getFrameBuffer()[pLocation] = colour;
 }
 
@@ -85,15 +90,15 @@ void RGE::RGEngine::frameBufferFillRect(iVec2 p1, iVec2 p2, RGBA colour) {
 	}
 }
 
-int RGE::RGEngine::fontRendererDrawGlyph(RGE::iVec2 position, char c, int scale) {
+int RGE::RGEngine::fontRendererDrawGlyph(iVec2 position, char c, int scale) {
     int cmIndex = 0;
 
-    for (wchar_t cm : fontMap) {
+    for (char cm : fontMap) {
         if (cm == c) {
 
             //i cant remember what these do
-            RGE::iVec2 map = { cmIndex % charY, cmIndex / charY };
-            RGE::iVec2 mapPosExpanded = { (map.X * charX) + ((map.X * charX) / charX), (map.Y * charY) + ((map.Y * charY) / charY) };
+            iVec2 map = { cmIndex % charY, cmIndex / charY };
+            iVec2 mapPosExpanded = { (map.X * charX) + ((map.X * charX) / charX), (map.Y * charY) + ((map.Y * charY) / charY) };
 
             //pixel
             for (int y = 0; y < charY; y++) {
@@ -121,7 +126,7 @@ int RGE::RGEngine::fontRendererDrawGlyph(RGE::iVec2 position, char c, int scale)
     return charX * scale;
 }
 
-int RGE::RGEngine::fontRendererDrawSpacer(RGE::iVec2 position, int width, int scale) {
+int RGE::RGEngine::fontRendererDrawSpacer(iVec2 position, int width, int scale) {
 
     for (int y = 0; y < charY * scale; y++) {
         for (int x = 0; x < width * scale; x++) {
@@ -135,7 +140,7 @@ int RGE::RGEngine::fontRendererDrawSpacer(RGE::iVec2 position, int width, int sc
     return width * scale;
 }
 
-int RGE::RGEngine::fontRendererDrawString(RGE::iVec2 position, const char* text, int scale) {
+int RGE::RGEngine::fontRendererDrawString(iVec2 position, const char* text, int scale) {
     if (!frameBuffer) { return 0; }
 
     //current offset from the origins X

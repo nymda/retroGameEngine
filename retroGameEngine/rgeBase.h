@@ -1,5 +1,7 @@
 #pragma once
 #include <chrono>
+#include <vector>
+#include "rgeTools.h"
 
 #define pi 3.14159265358979323846f
 
@@ -55,23 +57,57 @@ namespace RGE {
 
 	};
 
-	struct fVec2 {
-		float X;
-		float Y;
+	struct line {
+		fVec2 p1;
+		fVec2 p2;
 	};
 
-	struct iVec2 {
-		int X;
-		int Y;
+	struct wall {
+		line line;
+		RGBA colour;
 	};
 
-	struct player {
+	struct raycastImpact {
+		bool valid;
+		float distanceFromOrigin;
+		wall surface;
+		RGBA surfaceColour;
+		fVec2 position;
+	};
+
+	struct raycastResponse {
+		int impactCount = 0;
+		std::vector<raycastImpact> impacts;
+	};
+
+	class RGEPlayer {
+	public:
 		float angle = pi / 2.f;
 		fVec2 position = { 0.f, 0.f };
 
 		float cameraFocal = 0.5f;
 		float cameraLumens = 5.f;
 		float cameraCandella = 10000.f;
+	};
+
+	class RGEMap {
+	private:
+		std::vector<wall> staticElements = {};
+
+	public:
+
+		std::vector<wall> build() {
+			std::vector<wall> response = {};
+			for (wall& w : staticElements) {
+				response.push_back(w);
+			}
+
+			return response;
+		}
+
+		void addStaticWall(wall w) {
+			staticElements.push_back(w);
+		}
 	};
 
 	class RGEngine {
@@ -91,13 +127,18 @@ namespace RGE {
 		RGBA white = { 255, 255, 255, 255 };
 		RGBA black = { 0,   0,   0, 255 };
 		iVec2 fontMapSize = { 144, 101 };
-		int charX = 8;
-		int charY = 16;
+		const int charX = 8;
+		const int charY = 16;
 		
 		void initializeFontRenderer();
 
 	public:
-		player plr = {};
+
+		//user accessable elements
+		RGEPlayer* plr = new RGEPlayer;
+		RGEMap* map = new RGEMap;
+
+		//basic frameBuffer drawing
 
 		bool allocFrameBuffer(iVec2 size) {
 			frameBuffer = new RGBA[size.X * size.Y];
@@ -140,13 +181,24 @@ namespace RGE {
 
 		void frameBufferDrawPixel(iVec2 location, RGBA colour);
 		void frameBufferDrawLine(iVec2 p1, iVec2 p2, RGBA colour);
+		void frameBufferDrawLine(fVec2 p1, fVec2 p2, RGBA colour) {  
+			iVec2 p1i = { (int)p1.X, (int)p1.Y };
+			iVec2 p2i = { (int)p2.X, (int)p2.Y };
+			return frameBufferDrawLine(p1i, p2i, colour); 
+		};
 		void frameBufferDrawRect(iVec2 p1, iVec2 p2, RGBA colour);
 		void frameBufferFillRect(iVec2 p1, iVec2 p2, RGBA colour);
 		
-		int fontRendererDrawGlyph(RGE::iVec2 position, char c, int scale);
-		int fontRendererDrawString(RGE::iVec2 position, const char* text, int scale);
-		int fontRendererDrawSpacer(RGE::iVec2 position, int width, int scale);
+		//font renderer drawing
+
+		int fontRendererDrawGlyph(iVec2 position, char c, int scale);
+		int fontRendererDrawString(iVec2 position, const char* text, int scale);
+		int fontRendererDrawSpacer(iVec2 position, int width, int scale);
 		
+		//raycast functions
+
+		bool castRay(fVec2 origin, float angle, float correctionAngle, float maxLength, raycastResponse* responseData);
+
 		RGEngine() {
 			initializeFontRenderer();
 		}
