@@ -181,7 +181,7 @@ int main()
                 RGE::raycastResponse hinf = {};
 
                 if (engine->castRay(engine->plr->position, offsetAngle, engine->plr->angle, 5000.f, &hinf)) {
-                    if (mode == dispMode::map) { engine->frameBufferDrawLine(engine->plr->position, hinf.impacts.front().position, hinf.impacts.front().surfaceColour); }
+                    if (mode == dispMode::map) { engine->frameBufferDrawLine(engine->plr->position, hinf.impacts.back().position, hinf.impacts.back().surfaceColour); }
                 }
                 else {
                     fVec2 target = { engine->plr->position.X + (cos(offsetAngle) * 1000.f), engine->plr->position.Y + (sin(offsetAngle) * 1000.f) };
