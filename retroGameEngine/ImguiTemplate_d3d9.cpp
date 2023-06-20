@@ -177,7 +177,13 @@ int main()
                 if (engine->castRay(engine->plr->position, offsetAngle, engine->plr->angle, 1000.f, &hinf)) {
                     engine->frameBufferDrawLine(engine->plr->position, hinf.impacts.front().position, hinf.impacts.front().surfaceColour);
                 }
+                else {
+                    fVec2 target = { engine->plr->position.X + (cos(offsetAngle) * 1000.f), engine->plr->position.Y + (sin(offsetAngle) * 1000.f) };
+                    engine->frameBufferDrawLine(engine->plr->position, target, RGE::RGBA(255, 0, 0));
+                }
             }
+
+            engine->frameBufferDrawRect({ 0, 0 }, { 639, 479 }, RGE::RGBA(0, 0, 0));
 
 			char fps[32];
 			sprintf_s(fps, 32, "FPS: %.2f", lastFps);      
