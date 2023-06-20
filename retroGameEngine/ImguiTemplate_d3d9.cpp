@@ -76,7 +76,7 @@ int main()
             
 			engine->fontRendererDrawString({ 5, 5 }, fps, 1);
             
-            //this takes up over 2/3rds of the frame time
+            //this takes up over half of the frame time
             
             surface->LockRect(&draw, &window, D3DLOCK_DISCARD);
 
@@ -88,14 +88,10 @@ int main()
             for (int y = 0; y < 480; y++)
             {
                 DWORD* row = (DWORD*)data;
-                for (int x = 0; x < 640; x++)
-                {
-                    DWORD cPix = *(DWORD*)&(engineFrameBuffer[pc]);
-                    //*row++ = ((cPix << 24) | ((cPix << 8) & 0x00ff0000) | ((cPix >> 8) & 0x0000ff00) | ((cPix >> 24) & 0x000000ff)) >> 8;
-                    *row++ = cPix;
-                    pc++;
-                }
+				memcpy(row, engineFrameBuffer + pc, 640 * sizeof(RGE::RGBA));
                 data += draw.Pitch;
+                row += 640;
+				pc += 640;
             }
 
             surface->UnlockRect();
