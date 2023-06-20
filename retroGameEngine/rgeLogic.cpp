@@ -43,7 +43,7 @@ bool intersect(RGE::line* a, RGE::line* b, fVec2* out) {
 }
 
 bool comp(RGE::raycastImpact a, RGE::raycastImpact b) {
-    return a.distanceFromOrigin < b.distanceFromOrigin;
+    return a.distanceFromOrigin > b.distanceFromOrigin;
 }
 
 bool RGE::RGEngine::castRay(fVec2 origin, float angle, float correctionAngle, float maxDistance, raycastResponse* responseData) {

@@ -190,29 +190,29 @@ int main()
 
                 if (mode == dispMode::render) {
                     if (hinf.impactCount == 0) { continue; }
-                    RGE::raycastImpact primary = hinf.impacts.front();
 
-                    float dispHeight = engine->getFrameBufferSize().Y;
-                    float apparentSize = dispHeight * engine->plr->cameraFocal / primary.distanceFromOrigin;
-                    float height = apparentSize * dispHeight;
+                    for (RGE::raycastImpact imp : hinf.impacts) {
+                        float dispHeight = engine->getFrameBufferSize().Y;
+                        float apparentSize = dispHeight * engine->plr->cameraFocal / imp.distanceFromOrigin;
+                        float height = apparentSize * dispHeight;
 
-                    iVec2 barMin = { (2 * i), (480 / 2) - (height / 2.f) };
-                    iVec2 barMax = { (2 * i) + 1, (480 / 2) + (height / 2.f) };
+                        iVec2 barMin = { (2 * i), (480 / 2) - (height / 2.f) };
+                        iVec2 barMax = { (2 * i) + 1, (480 / 2) + (height / 2.f) };
 
-                    float brightness = (engine->plr->cameraLumens / (primary.distanceFromOrigin * primary.distanceFromOrigin)) * engine->plr->cameraCandella;
-                    brightness = fmin(brightness, 1.5f);
-                    brightness = fmax(brightness, 0.1f);
+                        float brightness = (engine->plr->cameraLumens / (imp.distanceFromOrigin * imp.distanceFromOrigin)) * engine->plr->cameraCandella;
+                        brightness = fmin(brightness, 1.5f);
+                        brightness = fmax(brightness, 0.1f);
 
-                    RGE::RGBA colour = RGE::RGBA((int)(brightness * (float)primary.surfaceColour.R), (int)(brightness * (float)primary.surfaceColour.G), (int)(brightness * (float)primary.surfaceColour.B));
+                        RGE::RGBA colour = RGE::RGBA((int)(brightness * (float)imp.surfaceColour.R), (int)(brightness * (float)imp.surfaceColour.G), (int)(brightness * (float)imp.surfaceColour.B));
+                        
+                        engine->frameBufferFillRect(barMin, barMax, colour);
 
-                    engine->frameBufferFillRect(barMin, barMax, colour);
-
-                    frameTotalBrightness += brightness;
-                    frameBrightnessAverage = frameTotalBrightness / i;
-                    if (brightness > 1.f) {
-                        overExposure = true;
+                        frameTotalBrightness += brightness;
+                        frameBrightnessAverage = frameTotalBrightness / i;
+                        if (brightness > 1.f) {
+                            overExposure = true;
+                        }
                     }
-
                 }
             }
 
