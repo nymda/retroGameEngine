@@ -18,6 +18,7 @@ const RECT window = { 0, 0, 640, 480 };
 D3DLOCKED_RECT draw;
 
 RGE::RGEngine* engine = new RGE::RGEngine();
+RGE::RGBA* frameBuffer = 0;
 float lastFps = -1.f;
 
 int main()
@@ -27,6 +28,7 @@ int main()
     HWND hwnd = ::CreateWindow(wc.lpszClassName, _T("RGE"), WS_OVERLAPPEDWINDOW, 100, 100, 640, 480, NULL, NULL, wc.hInstance, NULL);
 
     engine->allocFrameBuffer({ 640, 480 });
+    frameBuffer = engine->getFrameBuffer();
     
     // Initialize Direct3D
     if (!CreateDeviceD3D(hwnd))
@@ -44,6 +46,8 @@ int main()
     ZeroMemory(&msg, sizeof(msg));
 
     g_pd3dDevice->CreateOffscreenPlainSurface(640, 480, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &surface, NULL);
+
+    g_pd3dDevice->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &backbuffer);
 
     while (msg.message != WM_QUIT)
     {
@@ -80,17 +84,12 @@ int main()
             
             surface->LockRect(&draw, &window, D3DLOCK_DISCARD);
 
-            char* data = (char*)draw.pBits;
-
-            RGE::RGBA* engineFrameBuffer = engine->getFrameBuffer();
-
-            memcpy(data, engineFrameBuffer, (640 * 480) * sizeof(RGE::RGBA));
+            memcpy(draw.pBits, frameBuffer, (640 * 480) * sizeof(RGE::RGBA));
 
             surface->UnlockRect();
 
-            g_pd3dDevice->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &backbuffer);
-            g_pd3dDevice->StretchRect(surface, NULL, backbuffer, NULL, D3DTEXF_LINEAR);
-
+			g_pd3dDevice->StretchRect(surface, NULL, backbuffer, NULL, D3DTEXF_LINEAR);
+     
             //i must be doing something wrong for it to be this slow
             
             engine->frameTimerEnd();
