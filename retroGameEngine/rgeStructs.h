@@ -32,11 +32,13 @@ namespace RGE {
 	};
 
 	struct RGBA {
-		char R = 0;
-		char G = 0;
-		char B = 0;
-		char A = 255;
 
+		//the order of these can be swapped around to match the byte order in the frame buffer
+		char B = 0;
+		char G = 0;
+		char R = 0;
+		char A = 255;
+		
 		RGBA(int R, int G, int B, int A = 255) {
 			this->R = R;
 			this->G = G;

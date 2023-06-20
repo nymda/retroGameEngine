@@ -91,7 +91,8 @@ int main()
                 for (int x = 0; x < 640; x++)
                 {
                     DWORD cPix = *(DWORD*)&(engineFrameBuffer[pc]);
-                    *row++ = ((cPix << 24) | ((cPix << 8) & 0x00ff0000) | ((cPix >> 8) & 0x0000ff00) | ((cPix >> 24) & 0x000000ff)) >> 8;
+                    //*row++ = ((cPix << 24) | ((cPix << 8) & 0x00ff0000) | ((cPix >> 8) & 0x0000ff00) | ((cPix >> 24) & 0x000000ff)) >> 8;
+                    *row++ = cPix;
                     pc++;
                 }
                 data += draw.Pitch;
