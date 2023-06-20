@@ -57,7 +57,7 @@ bool RGE::RGEngine::castRay(fVec2 origin, float angle, float correctionAngle, fl
     for (wall& w : world) {
         fVec2 hit = { -1, -1 };
         if (intersect(&ray, &w.line, &hit)) {
-            float distanceToHit = sqrt(pow(origin.X - hit.X, 2) + pow(origin.Y - hit.Y, 2));
+            float distanceToHit = abs(sqrt(pow(origin.X - hit.X, 2) + pow(origin.Y - hit.Y, 2)));
             distanceToHit *= cos(correctionAngle - angle);
             responseData->impactCount++;
             responseData->impacts.push_back({ true, distanceToHit, w, RGBA(255, 255, 255), hit });

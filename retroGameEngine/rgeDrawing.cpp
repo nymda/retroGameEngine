@@ -6,11 +6,13 @@
 void RGE::RGEngine::frameBufferDrawPixel(iVec2 location, RGBA colour)
 {
     iVec2 fbSize = this->getFrameBufferSize();
+    if (location.X < 0 || location.Y < 0 || location.X > fbSize.X || location.Y > fbSize.Y) { return; }
+
 	int pLocation = (location.Y * fbSize.X) + location.X;
+
     if (pLocation > (fbSize.X * fbSize.Y)) { return; }
-    if (pLocation < 0) { 
-        return; 
-    }
+    if (pLocation < 0) { return; }
+
 	this->getFrameBuffer()[pLocation] = colour;
 }
 

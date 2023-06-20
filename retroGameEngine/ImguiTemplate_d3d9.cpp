@@ -174,8 +174,8 @@ int main()
 
                 RGE::raycastResponse hinf = {};
 
-                if (engine->castRay(engine->plr->position, offsetAngle, 0.f, 1000.f, &hinf)) {
-                    engine->frameBufferDrawLine(engine->plr->position, hinf.impacts[0].position, hinf.impacts[0].surfaceColour);
+                if (engine->castRay(engine->plr->position, offsetAngle, engine->plr->angle, 1000.f, &hinf)) {
+                    engine->frameBufferDrawLine(engine->plr->position, hinf.impacts.front().position, hinf.impacts.front().surfaceColour);
                 }
             }
 
