@@ -60,7 +60,15 @@ bool RGE::RGEngine::castRay(fVec2 origin, float angle, float correctionAngle, fl
             float distanceToHit = abs(sqrt(pow(origin.X - hit.X, 2) + pow(origin.Y - hit.Y, 2)));
             distanceToHit *= cos(correctionAngle - angle);
             responseData->impactCount++;
-            responseData->impacts.push_back({ true, distanceToHit, w, RGBA(255, 255, 255), hit });
+
+            raycastImpact rci = {};
+            rci.valid = true;
+            rci.distanceFromOrigin = distanceToHit;
+            rci.surface = w;
+            rci.surfaceColour = w.colour;
+            rci.position = hit;
+
+            responseData->impacts.push_back(rci);
             impact = true;
         }
     }

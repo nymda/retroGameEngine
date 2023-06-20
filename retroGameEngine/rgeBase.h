@@ -28,24 +28,59 @@
 
 namespace RGE {
 	struct RGB {
-		char R = 0;
-		char G = 0;
-		char B = 0;
+		unsigned char R = 0;
+		unsigned char G = 0;
+		unsigned char B = 0;
 	};
 
-	struct RGBA {
+	class RGBA {
+
+	public:
 
 		//the order of these can be swapped around to match the byte order in the frame buffer
-		char B = 0;
-		char G = 0;
-		char R = 0;
-		char A = 255;
+		unsigned char B = 0;
+		unsigned char G = 0;
+		unsigned char R = 0;
+		unsigned char A = 255;
 		
 		RGBA(int R, int G, int B, int A = 255) {
+			R = R < 255 ? R : 255;
+			R = R > 0 ? R : 0;
 			this->R = R;
+
+			G = G < 255 ? G : 255;
+			G = G > 0 ? G : 0;
 			this->G = G;
+
+			B = B < 255 ? B : 255;
+			B = B > 0 ? B : 0;
 			this->B = B;
+
+			A = A < 255 ? A : 255;
+			A = A > 0 ? A : 0;;
 			this->A = A;
+		}
+
+		RGBA(float R, float G, float B, float A = 1.f) {
+			int iR = (int)(R * 255.f);
+			iR = iR < 255 ? iR : 255;
+			iR = iR > 0 ? iR : 0;
+			this->R = iR;
+
+			int iG = (int)(G * 255.f);
+			iG = iG < 255 ? iG : 255;
+			iG = iG > 0 ? iG : 0;
+			this->G = iG;
+
+			int iB = (int)(B * 255.f);
+			iB = iB < 255 ? iB : 255;
+			iB = iB > 0 ? iB : 0;
+			this->B = iB;
+
+			int iA = (int)(A * 255.f);
+			iA = iA < 255 ? iA : 255;
+			iA = iA > 0 ? iA : 0;;
+			this->A = iA;
 		}
 
 		RGBA() {
@@ -54,7 +89,6 @@ namespace RGE {
 			this->B = 0;
 			this->A = 255;
 		}
-
 	};
 
 	struct line {
@@ -73,6 +107,10 @@ namespace RGE {
 		wall surface;
 		RGBA surfaceColour;
 		fVec2 position;
+
+		~raycastImpact() {
+			//delete[] surfaceColour;
+		}
 	};
 
 	struct raycastResponse {

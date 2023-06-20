@@ -26,8 +26,12 @@ enum dispMode {
     render = 1
 };
 
-dispMode mode = dispMode::map;
+dispMode mode = dispMode::render;
 fVec2 playerVelocity = { 0, 0 };
+
+float frameTotalBrightness = 0.f;
+float frameBrightnessAverage = 0.f;
+bool overExposure = false;
 
 //fires 60 times per second
 void timerCallback(HWND unnamedParam1, UINT unnamedParam2, UINT_PTR unnamedParam3, DWORD unnamedParam4) {
@@ -82,6 +86,13 @@ void timerCallback(HWND unnamedParam1, UINT unnamedParam2, UINT_PTR unnamedParam
 
     playerVelocity.X -= playerVelocity.X / 5.f;
     playerVelocity.Y -= playerVelocity.Y / 5.f;;
+
+    if (overExposure && engine->plr->cameraLumens > 0.5f) {
+        engine->plr->cameraLumens -= 0.075f;
+    }
+    else if (frameBrightnessAverage < 0.25f && engine->plr->cameraLumens < 5.f) {
+        engine->plr->cameraLumens += 0.075f;
+    }
 }
 
 int main()
@@ -95,15 +106,15 @@ int main()
 
     RGE::wall T;
     T.line = { {25, 25}, {640 - 25, 25} };
-    T.colour = RGE::RGBA(255, 255, 255, 255);
+    T.colour = RGE::RGBA(255, 100, 100, 255);
 
     RGE::wall B;
     B.line = { {25, 480 - 25}, {640 - 25, 480 - 25} };
-    B.colour = RGE::RGBA(255, 255, 255, 255);
+    B.colour = RGE::RGBA(100, 255, 100, 255);
 
     RGE::wall L;
     L.line = { {25, 25}, {25, 480 - 25} };
-    L.colour = RGE::RGBA(255, 255, 255, 255);
+    L.colour = RGE::RGBA(100, 100, 255, 255);
 
     RGE::wall R;
     R.line = { {640 - 25, 25}, {640 - 25, 480 - 25} };
@@ -158,14 +169,9 @@ int main()
 
             engine->fillFrameBuffer(RGE::RGBA(0, 0, 0));
 
-            if (mode == dispMode::map) {
-                for (RGE::wall& w : engine->map->build()) {
-                    iVec2 p1Int = { (int)w.line.p1.X, (int)w.line.p1.Y };
-                    iVec2 p2Int = { (int)w.line.p2.X, (int)w.line.p2.Y };
-                    engine->frameBufferDrawLine(p1Int, p2Int, w.colour);
-                }
-            }
-
+            frameTotalBrightness = 0.f;
+            frameBrightnessAverage = 0.f;
+            overExposure = false;
             for (int i = 0; i < 320; i++) {
 
                 float FOV = (pi / 2.f) / 1.75f;
@@ -174,16 +180,49 @@ int main()
 
                 RGE::raycastResponse hinf = {};
 
-                if (engine->castRay(engine->plr->position, offsetAngle, engine->plr->angle, 1000.f, &hinf)) {
-                    engine->frameBufferDrawLine(engine->plr->position, hinf.impacts.front().position, hinf.impacts.front().surfaceColour);
+                if (engine->castRay(engine->plr->position, offsetAngle, engine->plr->angle, 5000.f, &hinf)) {
+                    if (mode == dispMode::map) { engine->frameBufferDrawLine(engine->plr->position, hinf.impacts.front().position, hinf.impacts.front().surfaceColour); }
                 }
                 else {
                     fVec2 target = { engine->plr->position.X + (cos(offsetAngle) * 1000.f), engine->plr->position.Y + (sin(offsetAngle) * 1000.f) };
-                    engine->frameBufferDrawLine(engine->plr->position, target, RGE::RGBA(255, 0, 0));
+                    if (mode == dispMode::map) { engine->frameBufferDrawLine(engine->plr->position, target, RGE::RGBA(100, 100, 100)); }
+                }
+
+                if (mode == dispMode::render) {
+                    if (hinf.impactCount == 0) { continue; }
+                    RGE::raycastImpact primary = hinf.impacts.front();
+
+                    float dispHeight = engine->getFrameBufferSize().Y;
+                    float apparentSize = dispHeight * engine->plr->cameraFocal / primary.distanceFromOrigin;
+                    float height = apparentSize * dispHeight;
+
+                    iVec2 barMin = { (2 * i), (480 / 2) - (height / 2.f) };
+                    iVec2 barMax = { (2 * i) + 1, (480 / 2) + (height / 2.f) };
+
+                    float brightness = (engine->plr->cameraLumens / (primary.distanceFromOrigin * primary.distanceFromOrigin)) * engine->plr->cameraCandella;
+                    brightness = fmin(brightness, 1.5f);
+                    brightness = fmax(brightness, 0.1f);
+
+                    RGE::RGBA colour = RGE::RGBA((int)(brightness * (float)primary.surfaceColour.R), (int)(brightness * (float)primary.surfaceColour.G), (int)(brightness * (float)primary.surfaceColour.B));
+
+                    engine->frameBufferFillRect(barMin, barMax, colour);
+
+                    frameTotalBrightness += brightness;
+                    frameBrightnessAverage = frameTotalBrightness / i;
+                    if (brightness > 1.f) {
+                        overExposure = true;
+                    }
+
                 }
             }
 
-            engine->frameBufferDrawRect({ 0, 0 }, { 639, 479 }, RGE::RGBA(0, 0, 0));
+            if (mode == dispMode::map) {
+                for (RGE::wall& w : engine->map->build()) {
+                    iVec2 p1Int = { (int)w.line.p1.X, (int)w.line.p1.Y };
+                    iVec2 p2Int = { (int)w.line.p2.X, (int)w.line.p2.Y };
+                    engine->frameBufferDrawLine(p1Int, p2Int, w.colour);
+                }
+            }
 
 			char fps[32];
 			sprintf_s(fps, 32, "FPS: %.2f", lastFps);      
@@ -256,6 +295,13 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     switch (msg)
     {
+    case WM_KEYDOWN:
+        if (wParam == 0x4D)
+        {
+            mode = mode == map ? render : map;
+        }
+
+        return 0;
     case WM_SIZE:
         if (g_pd3dDevice != NULL && wParam != SIZE_MINIMIZED)
         {

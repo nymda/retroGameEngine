@@ -6,7 +6,7 @@
 void RGE::RGEngine::frameBufferDrawPixel(iVec2 location, RGBA colour)
 {
     iVec2 fbSize = this->getFrameBufferSize();
-    if (location.X < 0 || location.Y < 0 || location.X > fbSize.X || location.Y > fbSize.Y) { return; }
+    if (location.X < 0 || location.Y < 0 || location.X > (fbSize.X - 1) || location.Y > (fbSize.Y - 1)) { return; }
 
 	int pLocation = (location.Y * fbSize.X) + location.X;
 
@@ -61,6 +61,16 @@ void RGE::RGEngine::frameBufferDrawLine(iVec2 p1, iVec2 p2, RGBA colour)
 
 void RGE::RGEngine::frameBufferDrawRect(iVec2 p1, iVec2 p2, RGBA colour)
 {
+    p1.X = fmax(p1.X, 0.f);
+    p1.Y = fmax(p1.Y, 0.f);
+    p2.X = fmax(p2.X, 0.f);
+    p2.Y = fmax(p2.Y, 0.f);
+
+    p1.X = fmin(p1.X, frameBufferSize.X);
+    p1.Y = fmin(p1.Y, frameBufferSize.Y);
+    p2.X = fmin(p2.X, frameBufferSize.X);
+    p2.Y = fmin(p2.Y, frameBufferSize.Y);
+
 	frameBufferDrawLine(p1, { p2.X, p1.Y }, colour);
 	frameBufferDrawLine({ p2.X, p1.Y }, p2, colour);
 	frameBufferDrawLine(p2, { p1.X, p2.Y }, colour);
@@ -83,6 +93,16 @@ void RGE::RGEngine::frameBufferFillRect(iVec2 p1, iVec2 p2, RGBA colour) {
 		max.Y = p1.Y;
 	}
     
+    min.X = fmax(min.X, 0.f);
+    min.Y = fmax(min.Y, 0.f);
+    max.X = fmax(max.X, 0.f);
+    max.Y = fmax(max.Y, 0.f);
+
+    min.X = fmin(min.X, frameBufferSize.X);
+    min.Y = fmin(min.Y, frameBufferSize.Y);
+    max.X = fmin(max.X, frameBufferSize.X);
+    max.Y = fmin(max.Y, frameBufferSize.Y);
+
 	for (int y = min.Y; y <= max.Y; y++)
 	{
 		for (int x = min.X; x <= max.X; x++)
