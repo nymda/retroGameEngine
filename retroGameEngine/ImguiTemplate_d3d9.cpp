@@ -83,16 +83,8 @@ int main()
             char* data = (char*)draw.pBits;
 
             RGE::RGBA* engineFrameBuffer = engine->getFrameBuffer();
-            int pc = 0;
 
-            for (int y = 0; y < 480; y++)
-            {
-                DWORD* row = (DWORD*)data;
-				memcpy(row, engineFrameBuffer + pc, 640 * sizeof(RGE::RGBA));
-                data += draw.Pitch;
-                row += 640;
-				pc += 640;
-            }
+            memcpy(data, engineFrameBuffer, (640 * 480) * sizeof(RGE::RGBA));
 
             surface->UnlockRect();
 
