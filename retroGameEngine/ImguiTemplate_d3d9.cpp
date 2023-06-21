@@ -244,6 +244,27 @@ int main()
             frameTotalBrightness = 0.f;
             frameBrightnessAverage = 0.f;
             overExposure = false;
+
+            if (mode == dispMode::render) {
+                int floorSegments = 50;
+                float floorSegmentHeight = (640 / 2.f) / floorSegments;
+
+                float floorDistanceMin = 5.f;
+                float floorDistanceMax = 2000.f;
+
+                for (int i = 0; i < floorSegments; i++) {
+                    fVec2 floorMin = { 0, (480 / 2) + (floorSegmentHeight * (float)i) };
+                    fVec2 floorMax = { 640, (480 / 2) + (floorSegmentHeight * (float)(i + 1)) };
+
+                    float floorDistance = floorDistanceMax - (floorDistanceMin + ((floorDistanceMax - floorDistanceMin) / floorSegments) * i);
+                    float floorBrightness = (engine->plr->cameraLumens / (floorDistance * floorDistance)) * engine->plr->cameraCandella;
+
+                    RGE::RGBA segmentColour = RGE::RGBA(floorBrightness, floorBrightness, floorBrightness);
+                    engine->frameBufferFillRect(floorMin, floorMax, segmentColour);
+                    engine->frameBufferFillRect({ floorMin.X, (480 / 2) - (floorSegmentHeight * (float)(i + 1)) }, { floorMax.X, (480 / 2) - (floorSegmentHeight * (float)(i)) }, segmentColour);
+                }
+            }
+
             int rayCount = 320;
             for (int i = 0; i < rayCount; i++) {
 
@@ -294,7 +315,7 @@ int main()
 
 
                         //drawSegmentedTest(barMin, barMax, 1, colour);
-                        engine->frameBufferFillRectSegmented(barMin, barMax, (RGE::RGBA*)(currentTexture->data + dataOffset), currentTexture->X, 1.f);
+                        engine->frameBufferFillRectSegmented(barMin, barMax, (RGE::RGBA*)(currentTexture->data + dataOffset), currentTexture->X, brightness);
                         //engine->frameBufferFillRect(barMin, barMax, colour);
 
                         frameTotalBrightness += brightness;
