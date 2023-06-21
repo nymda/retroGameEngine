@@ -145,12 +145,14 @@
     <ClCompile Include="ImguiTemplate_d3d9.cpp" />
     <ClCompile Include="rgeDrawing.cpp" />
     <ClCompile Include="rgeLogic.cpp" />
+    <ClCompile Include="rgeTextures.cpp" />
     <ClCompile Include="rgeTools.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="fontData.h" />
     <ClInclude Include="rgeBase.h" />
     <ClInclude Include="rgeTools.h" />
+    <ClInclude Include="stb_image.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

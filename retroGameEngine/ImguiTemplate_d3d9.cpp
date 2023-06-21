@@ -110,34 +110,48 @@ void timerCallback(HWND unnamedParam1, UINT unnamedParam2, UINT_PTR unnamedParam
     }
 }
 
-iVec2 w2s(fVec2 world) {
-    iVec2 r = { 0, 0 };
-	r.X = (world.X - mapOffset.X) * mapScale.X;
-	r.Y = (world.Y - mapOffset.Y) * mapScale.Y;
+fVec2 w2s(fVec2 world) {
+    fVec2 r = { 0, 0 };
+	r.X = floorf((world.X - mapOffset.X) * mapScale.X);
+	r.Y = floorf((world.Y - mapOffset.Y) * mapScale.Y);
 	return r;
 }
 
-iVec2 w2s(iVec2 world) {
-    fVec2 worldF = { (float)world.X, (float)world.Y };
-    iVec2 r = { 0, 0 };
-    r.X = (worldF.X - mapOffset.X) * mapScale.X;
-    r.Y = (worldF.Y - mapOffset.Y) * mapScale.Y;
-    return r;
-}
-
 fVec2 s2w(fVec2 screen) {
-    fVec2 r = { 0,  0 };
-    r.X = (screen.X / mapScale.X) + mapOffset.X;
-    r.Y = (screen.Y / mapScale.Y) + mapOffset.Y;
-    return r;
-}
-
-
-fVec2 s2w(iVec2 screen) {
 	fVec2 r = { 0,  0 };
 	r.X = (screen.X / mapScale.X) + mapOffset.X;
 	r.Y = (screen.Y / mapScale.Y) + mapOffset.Y;
 	return r;
+}
+
+void drawSegmentedTest(fVec2 p1, fVec2 p2, int segmentCount, RGE::RGBA colour) {
+
+    fVec2 min = p1;
+    fVec2 max = p2;
+
+    if (p1.X > p2.X)
+    {
+        min.X = p2.X;
+        max.X = p1.X;
+    }
+
+    if (p1.Y > p2.Y)
+    {
+        min.Y = p2.Y;
+        max.Y = p1.Y;
+    }
+
+    float lineSizeY = (float)max.Y - (float)min.Y;
+    float segmentSizeY = lineSizeY / (float)segmentCount;
+
+    //this->frameBufferFillRect(min, max, colours[0]);
+
+    for (int i = 0; i < segmentCount; i++) {
+        fVec2 segmentMin = { (min.X), (min.Y + (segmentSizeY * i)) };
+        fVec2 segmentMax = { (max.X), (min.Y + (segmentSizeY * (i + 1))) };
+
+        engine->frameBufferFillRect(segmentMin, segmentMax, colour);
+    }
 }
 
 int main()
@@ -149,23 +163,31 @@ int main()
     engine->allocFrameBuffer({ 640, 480 });
     frameBuffer = engine->getFrameBuffer();
 
+    engine->initTextureFromDisk("bricktexture.png", RGE::textureMode::tile, 1);
+    engine->initTextureFromDisk("concrete.png", RGE::textureMode::tile, 2);
+    engine->initTextureFromDisk("gobid.png", RGE::textureMode::stretch, 3);
+
     mapOffset = { -640 / 2, -480 / 2 };
     
     RGE::wall T;
-    T.line = { {-1000, -1000}, {1000, -1000} };
+    T.line = { {-500, -500}, {500, -500} };
     T.colour = RGE::RGBA(255, 100, 100, 255);
+    T.textureID = 1;
 
     RGE::wall B;
-    B.line = { {-1000, 1000}, {1000, 1000} };
+    B.line = { {-500, 500}, {500, 500} };
     B.colour = RGE::RGBA(100, 255, 100, 255);
+    B.textureID = 1;
 
     RGE::wall L;
-    L.line = { {-1000, -1000}, {-1000, 1000} };
+    L.line = { {-500, -500}, {-500, 500} };
     L.colour = RGE::RGBA(100, 100, 255, 255);
+    L.textureID = 1;
 
     RGE::wall R;
-    R.line = { {1000, -1000}, {1000, 1000} };
+    R.line = { {500, -500}, {500, 500} };
     R.colour = RGE::RGBA(255, 255, 255, 255);
+    R.textureID = 1;
 
     engine->map->addStaticWall(T);
     engine->map->addStaticWall(B);
@@ -247,16 +269,33 @@ int main()
                         float apparentSize = dispHeight * engine->plr->cameraFocal / imp.distanceFromOrigin;
                         float height = apparentSize * dispHeight;
 
-                        iVec2 barMin = { (2 * i), (dispHeight / 2) - (height / 2.f) };
-                        iVec2 barMax = { (2 * i) + 1, (dispHeight / 2) + (height / 2.f) };
+                        fVec2 barMin = { (2 * i), (dispHeight / 2) - (height / 2.f) };
+                        fVec2 barMax = { (2 * i) + 1, (dispHeight / 2) + (height / 2.f) };
 
                         float brightness = (engine->plr->cameraLumens / (imp.distanceFromOrigin * imp.distanceFromOrigin)) * engine->plr->cameraCandella;
                         brightness = fmin(brightness, 1.5f);
                         brightness = fmax(brightness, 0.1f);
 
                         RGE::RGBA colour = RGE::RGBA((int)(brightness * (float)imp.surfaceColour.R), (int)(brightness * (float)imp.surfaceColour.G), (int)(brightness * (float)imp.surfaceColour.B));
-                        
-                        engine->frameBufferFillRect(barMin, barMax, colour);
+
+                        RGE::RGETexture* currentTexture = engine->textureMap[imp.surface.textureID];
+
+                        float trueDistance = 0;
+                        float unused = 0;
+                        if (currentTexture->mode == RGE::textureMode::tile) {
+                            trueDistance = std::modf(imp.trueDistanceFromLineOrigin / (float)(currentTexture->X * 4.f), &unused);
+                        }
+                        else {
+                            trueDistance = imp.distanceFromLineOrigin;
+                        }
+
+                        int tpo = trueDistance * currentTexture->X;
+                        int dataOffset = (tpo * currentTexture->X);
+
+
+                        //drawSegmentedTest(barMin, barMax, 1, colour);
+                        engine->frameBufferFillRectSegmented(barMin, barMax, (RGE::RGBA*)(currentTexture->data + dataOffset), currentTexture->X, 1.f);
+                        //engine->frameBufferFillRect(barMin, barMax, colour);
 
                         frameTotalBrightness += brightness;
                         frameBrightnessAverage = frameTotalBrightness / i;
@@ -269,8 +308,8 @@ int main()
 
             if (mode == dispMode::map) {
                 for (RGE::wall& w : engine->map->build()) {
-                    iVec2 p1Int = { (int)w.line.p1.X, (int)w.line.p1.Y };
-                    iVec2 p2Int = { (int)w.line.p2.X, (int)w.line.p2.Y };
+                    fVec2 p1Int = { w.line.p1.X, w.line.p1.Y };
+                    fVec2 p2Int = { w.line.p2.X, w.line.p2.Y };
                     engine->frameBufferDrawLine(w2s(p1Int), w2s(p2Int), w.colour);
                 }
             }
@@ -346,26 +385,29 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     switch (msg)
     {
-    case WM_KEYDOWN:
-        if (wParam == 0x4D)
-        {
-            mode = mode == map ? render : map;
-        }
 
-        if (wParam == VK_OEM_PLUS) {
+    case WM_MOUSEWHEEL:
+        if (GET_WHEEL_DELTA_WPARAM(wParam) > 0) {
             fVec2 mousePreZoom = s2w(mousePos);
             mapScale = { mapScale.X * 1.01f, mapScale.Y * 1.01f };
             fVec2 mousePostZoom = s2w(mousePos);
             mapOffset.X += mousePreZoom.X - mousePostZoom.X;
             mapOffset.Y += mousePreZoom.Y - mousePostZoom.Y;
         }
-
-        if (wParam == VK_OEM_MINUS) {
+        else {
             fVec2 mousePreZoom = s2w(mousePos);
             mapScale = { mapScale.X * 0.99f, mapScale.Y * 0.99f };
             fVec2 mousePostZoom = s2w(mousePos);
             mapOffset.X += mousePreZoom.X - mousePostZoom.X;
             mapOffset.Y += mousePreZoom.Y - mousePostZoom.Y;
+        }
+
+        return 0;
+
+    case WM_KEYDOWN:
+        if (wParam == 0x4D)
+        {
+            mode = mode == map ? render : map;
         }
 
         return 0;

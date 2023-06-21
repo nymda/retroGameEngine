@@ -67,6 +67,8 @@ bool RGE::RGEngine::castRay(fVec2 origin, float angle, float correctionAngle, fl
             rci.surface = w;
             rci.surfaceColour = w.colour;
             rci.position = hit;
+            rci.distanceFromLineOrigin = distance(hit, w.line.p1) / distance(w.line.p1, w.line.p2);
+            rci.trueDistanceFromLineOrigin = distance(hit, w.line.p1);
 
             responseData->impacts.push_back(rci);
             impact = true;

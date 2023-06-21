@@ -3,7 +3,7 @@
 #include <vector>
 #include "rgeTools.h"
 
-#define pi 3.14159265358979323846f
+const float pi = 3.14159265358979323846f;
 
 /// <summary>
 /// 
@@ -91,6 +91,20 @@ namespace RGE {
 		}
 	};
 
+	enum textureMode {
+		stretch = 0,
+		tile = 1
+	};
+
+	struct RGETexture {
+		int textureID;
+		RGBA* data;
+		int dataSize;
+		int X;
+		int Y;
+		textureMode mode = textureMode::tile;
+	};
+
 	struct line {
 		fVec2 p1;
 		fVec2 p2;
@@ -99,11 +113,14 @@ namespace RGE {
 	struct wall {
 		line line;
 		RGBA colour;
+		int textureID = 0;
 	};
 
 	struct raycastImpact {
 		bool valid;
 		float distanceFromOrigin;
+		float distanceFromLineOrigin = -1.f;
+		float trueDistanceFromLineOrigin = -1.f;
 		wall surface;
 		RGBA surfaceColour;
 		fVec2 position;
@@ -126,7 +143,7 @@ namespace RGE {
 		float cameraMaxDistance = 5000.f;
 		float cameraFocal = 0.5f;
 		float cameraLumens = 5.f;
-		float cameraCandella = 10000.f;
+		float cameraCandella = 20000.f;
 	};
 
 	class RGEMap {
@@ -176,9 +193,9 @@ namespace RGE {
 		//user accessable elements
 		RGEPlayer* plr = new RGEPlayer;
 		RGEMap* map = new RGEMap;
+		RGETexture* textureMap[128] = {};
 
 		//basic frameBuffer drawing
-
 		bool allocFrameBuffer(iVec2 size) {
 			frameBuffer = new RGBA[size.X * size.Y];
 			if (!frameBuffer) { return false; }
@@ -211,6 +228,7 @@ namespace RGE {
 			return frameTimeMicros;
 		}
 		
+		//primitive drawing
 		void fillFrameBuffer(RGBA colour) {
 			int size = frameBufferSize.X * frameBufferSize.Y;
 			for (int i = 0; i < size; i++) {
@@ -218,30 +236,29 @@ namespace RGE {
 			}
 		}
 
-		void frameBufferDrawPixel(iVec2 location, RGBA colour);
-		void frameBufferDrawLine(iVec2 p1, iVec2 p2, RGBA colour);
-		void frameBufferDrawLine(fVec2 p1, fVec2 p2, RGBA colour) {  
-			iVec2 p1i = { (int)p1.X, (int)p1.Y };
-			iVec2 p2i = { (int)p2.X, (int)p2.Y };
-			return frameBufferDrawLine(p1i, p2i, colour); 
-		};
-		void frameBufferDrawRect(iVec2 p1, iVec2 p2, RGBA colour);
-		void frameBufferFillRect(iVec2 p1, iVec2 p2, RGBA colour);
-		void frameBufferDrawCircle(iVec2 center, int radius, RGBA colour);
+		void frameBufferDrawPixel(fVec2 location, RGBA colour);
+		void frameBufferDrawLine(fVec2 p1, fVec2 p2, RGBA colour);
+		void frameBufferDrawRect(fVec2 p1, fVec2 p2, RGBA colour);
+		void frameBufferFillRect(fVec2 p1, fVec2 p2, RGBA colour);
+		void frameBufferDrawCircle(fVec2 center, int radius, RGBA colour);
 		//void frameBufferFillCircle(iVec2 center, int radius, RGBA colour);
 
 		//font renderer drawing
-
-		int fontRendererDrawGlyph(iVec2 position, char c, int scale);
-		int fontRendererDrawString(iVec2 position, const char* text, int scale);
-		int fontRendererDrawSpacer(iVec2 position, int width, int scale);
+		int fontRendererDrawGlyph(fVec2 position, char c, int scale);
+		int fontRendererDrawString(fVec2 position, const char* text, int scale);
+		int fontRendererDrawSpacer(fVec2 position, int width, int scale);
 		
 		//raycast functions
-
 		bool castRay(fVec2 origin, float angle, float correctionAngle, float maxLength, raycastResponse* responseData);
+
+		//texture functions
+		void initDefaultTexture();
+		void initTextureFromDisk(const char* path, textureMode mode, int textureIndex);
+		void frameBufferFillRectSegmented(fVec2 p1, fVec2 p2, RGBA colours[], int colourCount, float brightnessModifier);
 
 		RGEngine() {
 			initializeFontRenderer();
+			initDefaultTexture();
 		}
 	};
 }
