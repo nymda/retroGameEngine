@@ -112,6 +112,19 @@ void RGE::RGEngine::frameBufferFillRect(iVec2 p1, iVec2 p2, RGBA colour) {
 	}
 }
 
+void RGE::RGEngine::frameBufferDrawCircle(iVec2 center, int radius, RGBA colour) {
+    int sides = 32;
+	float theta = 0.f;
+	float dTheta = (2.f * 3.14159265359f) / sides;
+	for (int i = 0; i < sides; i++)
+	{
+		iVec2 p1 = { (int)(center.X + (radius * cos(theta))), (int)(center.Y + (radius * sin(theta))) };
+		iVec2 p2 = { (int)(center.X + (radius * cos(theta + dTheta))), (int)(center.Y + (radius * sin(theta + dTheta))) };
+		frameBufferDrawLine(p1, p2, colour);
+		theta += dTheta;
+	}
+}
+
 int RGE::RGEngine::fontRendererDrawGlyph(iVec2 position, char c, int scale) {
     int cmIndex = 0;
 

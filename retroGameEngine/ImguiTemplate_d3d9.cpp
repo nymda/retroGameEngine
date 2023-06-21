@@ -26,12 +26,27 @@ enum dispMode {
     render = 1
 };
 
+HWND hWnd = 0;
+
 dispMode mode = dispMode::render;
 fVec2 playerVelocity = { 0, 0 };
 
 float frameTotalBrightness = 0.f;
 float frameBrightnessAverage = 0.f;
 bool overExposure = false;
+
+fVec2 mapOffset = { 0, 0 };
+fVec2 mapScale = { 1, 1 };
+fVec2 mapStartPan = { 0, 0 };
+fVec2 mousePos = { -1, -1 };
+
+POINT GetMousePos(HWND hWnd)
+{
+    POINT cursorPos;
+    GetCursorPos(&cursorPos);
+    ScreenToClient(hWnd, &cursorPos);
+    return cursorPos;
+}
 
 //fires 60 times per second
 void timerCallback(HWND unnamedParam1, UINT unnamedParam2, UINT_PTR unnamedParam3, DWORD unnamedParam4) {
@@ -95,29 +110,61 @@ void timerCallback(HWND unnamedParam1, UINT unnamedParam2, UINT_PTR unnamedParam
     }
 }
 
+iVec2 w2s(fVec2 world) {
+    iVec2 r = { 0, 0 };
+	r.X = (world.X - mapOffset.X) * mapScale.X;
+	r.Y = (world.Y - mapOffset.Y) * mapScale.Y;
+	return r;
+}
+
+iVec2 w2s(iVec2 world) {
+    fVec2 worldF = { (float)world.X, (float)world.Y };
+    iVec2 r = { 0, 0 };
+    r.X = (worldF.X - mapOffset.X) * mapScale.X;
+    r.Y = (worldF.Y - mapOffset.Y) * mapScale.Y;
+    return r;
+}
+
+fVec2 s2w(fVec2 screen) {
+    fVec2 r = { 0,  0 };
+    r.X = (screen.X / mapScale.X) + mapOffset.X;
+    r.Y = (screen.Y / mapScale.Y) + mapOffset.Y;
+    return r;
+}
+
+
+fVec2 s2w(iVec2 screen) {
+	fVec2 r = { 0,  0 };
+	r.X = (screen.X / mapScale.X) + mapOffset.X;
+	r.Y = (screen.Y / mapScale.Y) + mapOffset.Y;
+	return r;
+}
+
 int main()
 {
     WNDCLASSEX wc = { sizeof(WNDCLASSEX), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(NULL), NULL, NULL, NULL, NULL, _T("RGE"), NULL };
     ::RegisterClassEx(&wc);
-    HWND hwnd = ::CreateWindow(wc.lpszClassName, _T("RGE"), WS_OVERLAPPEDWINDOW, 100, 100, 640, 480, NULL, NULL, wc.hInstance, NULL);
+    hWnd = ::CreateWindow(wc.lpszClassName, _T("RGE"), WS_OVERLAPPEDWINDOW, 100, 100, 640, 480, NULL, NULL, wc.hInstance, NULL);
 
     engine->allocFrameBuffer({ 640, 480 });
     frameBuffer = engine->getFrameBuffer();
 
+    mapOffset = { -640 / 2, -480 / 2 };
+    
     RGE::wall T;
-    T.line = { {25, 25}, {640 - 25, 25} };
+    T.line = { {-1000, -1000}, {1000, -1000} };
     T.colour = RGE::RGBA(255, 100, 100, 255);
 
     RGE::wall B;
-    B.line = { {25, 480 - 25}, {640 - 25, 480 - 25} };
+    B.line = { {-1000, 1000}, {1000, 1000} };
     B.colour = RGE::RGBA(100, 255, 100, 255);
 
     RGE::wall L;
-    L.line = { {25, 25}, {25, 480 - 25} };
+    L.line = { {-1000, -1000}, {-1000, 1000} };
     L.colour = RGE::RGBA(100, 100, 255, 255);
 
     RGE::wall R;
-    R.line = { {640 - 25, 25}, {640 - 25, 480 - 25} };
+    R.line = { {1000, -1000}, {1000, 1000} };
     R.colour = RGE::RGBA(255, 255, 255, 255);
 
     engine->map->addStaticWall(T);
@@ -126,7 +173,7 @@ int main()
     engine->map->addStaticWall(R);
 
     // Initialize Direct3D
-    if (!CreateDeviceD3D(hwnd))
+    if (!CreateDeviceD3D(hWnd))
     {
         CleanupDeviceD3D();
         ::UnregisterClass(wc.lpszClassName, wc.hInstance);
@@ -134,8 +181,8 @@ int main()
     }
 
     // Show the window
-    ::ShowWindow(hwnd, SW_SHOWDEFAULT);
-    ::UpdateWindow(hwnd);
+    ::ShowWindow(hWnd, SW_SHOWDEFAULT);
+    ::UpdateWindow(hWnd);
 
     MSG msg;
     ZeroMemory(&msg, sizeof(msg));
@@ -156,6 +203,9 @@ int main()
             continue;
         }
 
+        POINT cp = GetMousePos(hWnd);
+        mousePos = { (float)cp.x, (float)cp.y };
+
         g_pd3dDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
         g_pd3dDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
         g_pd3dDevice->SetRenderState(D3DRS_SCISSORTESTENABLE, FALSE);
@@ -172,20 +222,21 @@ int main()
             frameTotalBrightness = 0.f;
             frameBrightnessAverage = 0.f;
             overExposure = false;
-            for (int i = 0; i < 320; i++) {
+            int rayCount = 320;
+            for (int i = 0; i < rayCount; i++) {
 
                 float FOV = (pi / 2.f) / 1.75f;
-                float angleStep = FOV / 320;
+                float angleStep = FOV / rayCount;
                 float offsetAngle = (engine->plr->angle - (FOV / 2.f)) + (angleStep * (float)i);
 
                 RGE::raycastResponse hinf = {};
 
-                if (engine->castRay(engine->plr->position, offsetAngle, engine->plr->angle, 5000.f, &hinf)) {
-                    if (mode == dispMode::map) { engine->frameBufferDrawLine(engine->plr->position, hinf.impacts.back().position, hinf.impacts.back().surfaceColour); }
+                if (engine->castRay(engine->plr->position, offsetAngle, engine->plr->angle, engine->plr->cameraMaxDistance, &hinf)) {
+                    if (mode == dispMode::map) { engine->frameBufferDrawLine(w2s(engine->plr->position), w2s(hinf.impacts.back().position), hinf.impacts.back().surfaceColour); }
                 }
                 else {
-                    fVec2 target = { engine->plr->position.X + (cos(offsetAngle) * 1000.f), engine->plr->position.Y + (sin(offsetAngle) * 1000.f) };
-                    if (mode == dispMode::map) { engine->frameBufferDrawLine(engine->plr->position, target, RGE::RGBA(100, 100, 100)); }
+                    fVec2 target = { engine->plr->position.X + (cos(offsetAngle) * engine->plr->cameraMaxDistance), engine->plr->position.Y + (sin(offsetAngle) * engine->plr->cameraMaxDistance) };
+                    if (mode == dispMode::map) { engine->frameBufferDrawLine(w2s(engine->plr->position), w2s(target), RGE::RGBA(100, 100, 100)); }
                 }
 
                 if (mode == dispMode::render) {
@@ -196,8 +247,8 @@ int main()
                         float apparentSize = dispHeight * engine->plr->cameraFocal / imp.distanceFromOrigin;
                         float height = apparentSize * dispHeight;
 
-                        iVec2 barMin = { (2 * i), (480 / 2) - (height / 2.f) };
-                        iVec2 barMax = { (2 * i) + 1, (480 / 2) + (height / 2.f) };
+                        iVec2 barMin = { (2 * i), (dispHeight / 2) - (height / 2.f) };
+                        iVec2 barMax = { (2 * i) + 1, (dispHeight / 2) + (height / 2.f) };
 
                         float brightness = (engine->plr->cameraLumens / (imp.distanceFromOrigin * imp.distanceFromOrigin)) * engine->plr->cameraCandella;
                         brightness = fmin(brightness, 1.5f);
@@ -220,7 +271,7 @@ int main()
                 for (RGE::wall& w : engine->map->build()) {
                     iVec2 p1Int = { (int)w.line.p1.X, (int)w.line.p1.Y };
                     iVec2 p2Int = { (int)w.line.p2.X, (int)w.line.p2.Y };
-                    engine->frameBufferDrawLine(p1Int, p2Int, w.colour);
+                    engine->frameBufferDrawLine(w2s(p1Int), w2s(p2Int), w.colour);
                 }
             }
 
@@ -256,7 +307,7 @@ int main()
     }
 
     CleanupDeviceD3D();
-    ::DestroyWindow(hwnd);
+    ::DestroyWindow(hWnd);
     ::UnregisterClass(wc.lpszClassName, wc.hInstance);
 
     return 0;
@@ -299,6 +350,22 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
         if (wParam == 0x4D)
         {
             mode = mode == map ? render : map;
+        }
+
+        if (wParam == VK_OEM_PLUS) {
+            fVec2 mousePreZoom = s2w(mousePos);
+            mapScale = { mapScale.X * 1.01f, mapScale.Y * 1.01f };
+            fVec2 mousePostZoom = s2w(mousePos);
+            mapOffset.X += mousePreZoom.X - mousePostZoom.X;
+            mapOffset.Y += mousePreZoom.Y - mousePostZoom.Y;
+        }
+
+        if (wParam == VK_OEM_MINUS) {
+            fVec2 mousePreZoom = s2w(mousePos);
+            mapScale = { mapScale.X * 0.99f, mapScale.Y * 0.99f };
+            fVec2 mousePostZoom = s2w(mousePos);
+            mapOffset.X += mousePreZoom.X - mousePostZoom.X;
+            mapOffset.Y += mousePreZoom.Y - mousePostZoom.Y;
         }
 
         return 0;

@@ -123,6 +123,7 @@ namespace RGE {
 		float angle = pi / 2.f;
 		fVec2 position = { 0.f, 0.f };
 
+		float cameraMaxDistance = 5000.f;
 		float cameraFocal = 0.5f;
 		float cameraLumens = 5.f;
 		float cameraCandella = 10000.f;
@@ -226,7 +227,9 @@ namespace RGE {
 		};
 		void frameBufferDrawRect(iVec2 p1, iVec2 p2, RGBA colour);
 		void frameBufferFillRect(iVec2 p1, iVec2 p2, RGBA colour);
-		
+		void frameBufferDrawCircle(iVec2 center, int radius, RGBA colour);
+		//void frameBufferFillCircle(iVec2 center, int radius, RGBA colour);
+
 		//font renderer drawing
 
 		int fontRendererDrawGlyph(iVec2 position, char c, int scale);
