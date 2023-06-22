@@ -154,6 +154,54 @@ void drawSegmentedTest(fVec2 p1, fVec2 p2, int segmentCount, RGE::RGBA colour) {
     }
 }
 
+int closest(int search) {
+    int levels[] = { 10, 20, 50, 100, 250, 500 };
+	int closest = levels[0];
+
+	for (int i = 0; i < 6; i++)
+	{
+		if (abs(search - levels[i]) < abs(search - closest))
+		{
+			closest = levels[i];
+		}
+	}
+
+	return closest;
+}
+
+void renderMap() {
+
+    fVec2 screenMin = s2w({ 0.f, 0.f });
+	fVec2 screenMax = s2w({ 640.f, 480.f });
+
+	float mapVisibleWidth = ((screenMax.X - screenMin.X) / mapScale.X) / 640.f;
+    int sneed = closest((int)mapVisibleWidth * 10);
+    
+	for (float x = screenMin.X; x < screenMax.X; x += 1.f) {
+		for (float y = screenMin.Y; y < screenMax.Y; y += 1.f) {
+            
+			iVec2 ss = { (int)(x - 0.5f), (int)(y - 0.5f) };
+            iVec2 zl = { (int)((mapScale.X * 50.f) - 0.5f) + 1, (int)((mapScale.Y * 50.f) - 0.5f) + 1 };
+
+            if (ss.X % sneed == 0 && ss.Y % sneed == 0) {
+                fVec2 point = { ss.X, ss.Y };
+                point = w2s(point);
+
+                //engine->frameBufferFillRect(point, { point.X + 1.f, point.Y + 1.f }, RGE::RGBA(1.f, 1.f, 1.f));
+                engine->frameBufferDrawPixel(point, RGE::RGBA(1.f, 1.f, 1.f));
+            }
+               
+            
+		}
+	}
+    
+    for (RGE::wall& w : engine->map->build()) {
+        fVec2 p1Int = { w.line.p1.X, w.line.p1.Y };
+        fVec2 p2Int = { w.line.p2.X, w.line.p2.Y };
+        engine->frameBufferDrawLine(w2s(p1Int), w2s(p2Int), w.colour);
+    }
+}
+
 int main()
 {
     WNDCLASSEX wc = { sizeof(WNDCLASSEX), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(NULL), NULL, NULL, NULL, NULL, _T("RGE"), NULL };
@@ -328,11 +376,7 @@ int main()
             }
 
             if (mode == dispMode::map) {
-                for (RGE::wall& w : engine->map->build()) {
-                    fVec2 p1Int = { w.line.p1.X, w.line.p1.Y };
-                    fVec2 p2Int = { w.line.p2.X, w.line.p2.Y };
-                    engine->frameBufferDrawLine(w2s(p1Int), w2s(p2Int), w.colour);
-                }
+                renderMap();
             }
 
 			char fps[32];
