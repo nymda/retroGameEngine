@@ -177,6 +177,7 @@ void renderMap() {
 	float mapVisibleWidth = ((screenMax.X - screenMin.X) / mapScale.X) / 640.f;
     int sneed = closest((int)mapVisibleWidth * 10);
     
+    //loops cause lag at very zoomed out zoom levels (due to screenMin to screenMax being larger?)
 	for (float x = screenMin.X; x < screenMax.X; x += 1.f) {
 		for (float y = screenMin.Y; y < screenMax.Y; y += 1.f) {
             
@@ -187,14 +188,12 @@ void renderMap() {
                 fVec2 point = { ss.X, ss.Y };
                 point = w2s(point);
 
-                //engine->frameBufferFillRect(point, { point.X + 1.f, point.Y + 1.f }, RGE::RGBA(1.f, 1.f, 1.f));
                 engine->frameBufferDrawPixel(point, RGE::RGBA(1.f, 1.f, 1.f));
-            }
-               
-            
+            }   
 		}
 	}
     
+    //causes lag at very zoomed in zoom levels, idk
     for (RGE::wall& w : engine->map->build()) {
         fVec2 p1Int = { w.line.p1.X, w.line.p1.Y };
         fVec2 p2Int = { w.line.p2.X, w.line.p2.Y };
