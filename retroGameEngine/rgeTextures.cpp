@@ -27,7 +27,9 @@ void RGE::RGEngine::initDefaultTexture() {
 	nt->dataSize = sizeof(RGBA) * (defaultTextureRes * defaultTextureRes);
 	nt->mode = textureMode::tile;
 
-	this->textureMap[0] = nt;
+	for (int i = 0; i < 128; i++) {
+		this->textureMap[i] = nt;
+	}
 }
 
 void RGE::RGEngine::initTextureFromDisk(const char* path, textureMode mode, int textureIndex) {
@@ -58,7 +60,8 @@ void RGE::RGEngine::initTextureFromDisk(const char* path, textureMode mode, int 
 
 	int tChannels = 0;
 	RGB* tmpBfr = (RGB*)stbi_load(tmp, &nt->X, &nt->Y, &tChannels, 3);
-
+	if (!tmpBfr) { return; }
+	
 	int pixelCount = nt->X * nt->Y;
 
 	nt->data = new RGBA[pixelCount];
