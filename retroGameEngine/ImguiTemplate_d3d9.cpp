@@ -174,8 +174,6 @@ void renderMap() {
     fVec2 screenMin = s2w({ 0.f, 0.f });
 	fVec2 screenMax = s2w({ 640.f, 480.f });
 
-    float mapVisibleWidth = ((screenMax.X - screenMin.X) / mapScale.X) / 640.f;
-
     float gridDensity = 0.01f;
     float stepSize = 1.f / gridDensity;
 
@@ -189,8 +187,7 @@ void renderMap() {
             engine->frameBufferDrawPixel(screenPoint, RGE::RGBA(1.f, 1.f, 1.f));
         }
     }
-    
-    
+      
     //causes lag at very zoomed in zoom levels, idk
     for (RGE::wall& w : engine->map->build()) {
         fVec2 p1Int = { w.line.p1.X, w.line.p1.Y };
