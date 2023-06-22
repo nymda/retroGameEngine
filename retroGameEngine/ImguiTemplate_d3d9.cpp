@@ -208,6 +208,7 @@ int main()
     engine->initTextureFromDisk("bricktexture.png", RGE::textureMode::tile, 1);
     engine->initTextureFromDisk("concrete.png", RGE::textureMode::tile, 2);
     engine->initTextureFromDisk("gobid.png", RGE::textureMode::stretch, 3);
+    engine->initTextureFromDisk("floor.png", RGE::textureMode::stretch, 4);
 
     mapOffset = { -640 / 2, -480 / 2 };
     
@@ -287,24 +288,72 @@ int main()
             frameBrightnessAverage = 0.f;
             overExposure = false;
 
+            RGE::RGETexture* floor = engine->textureMap[4];
+
             if (mode == dispMode::render) {
-                int floorSegments = 50;
-                float floorSegmentHeight = (640 / 2.f) / floorSegments;
+                float fWorldX = engine->plr->position.X / 10000.f;
+                float fWorldY = engine->plr->position.Y / 10000.f;
+                float fWorldA = engine->plr->angle;
+                float fNear = 0.005f;
+                float fFar = 0.03f;
+                float fFoVHalf = ((pi / 2.f) / 1.75f) / 2.f;
 
-                float floorDistanceMin = 5.f;
-                float floorDistanceMax = 2000.f;
+                float fFarX1 = fWorldX + cosf(fWorldA - fFoVHalf) * fFar;
+                float fFarY1 = fWorldY + sinf(fWorldA - fFoVHalf) * fFar;
 
-                for (int i = 0; i < floorSegments; i++) {
-                    fVec2 floorMin = { 0, (480 / 2) + (floorSegmentHeight * (float)i) };
-                    fVec2 floorMax = { 640, (480 / 2) + (floorSegmentHeight * (float)(i + 1)) };
+                float fNearX1 = fWorldX + cosf(fWorldA - fFoVHalf) * fNear;
+                float fNearY1 = fWorldY + sinf(fWorldA - fFoVHalf) * fNear;
 
-                    float floorDistance = floorDistanceMax - (floorDistanceMin + ((floorDistanceMax - floorDistanceMin) / floorSegments) * i);
-                    float floorBrightness = (engine->plr->cameraLumens / (floorDistance * floorDistance)) * engine->plr->cameraCandella;
+                float fFarX2 = fWorldX + cosf(fWorldA + fFoVHalf) * fFar;
+                float fFarY2 = fWorldY + sinf(fWorldA + fFoVHalf) * fFar;
 
-                    RGE::RGBA segmentColour = RGE::RGBA(floorBrightness, floorBrightness, floorBrightness);
-                    engine->frameBufferFillRect(floorMin, floorMax, segmentColour);
-                    engine->frameBufferFillRect({ floorMin.X, (480 / 2) - (floorSegmentHeight * (float)(i + 1)) }, { floorMax.X, (480 / 2) - (floorSegmentHeight * (float)(i)) }, segmentColour);
+                float fNearX2 = fWorldX + cosf(fWorldA + fFoVHalf) * fNear;
+                float fNearY2 = fWorldY + sinf(fWorldA + fFoVHalf) * fNear;
+
+                for (int fy = 1; fy < engine->getFrameBufferSize().Y / 2.F; fy+=2) {
+
+                    float fSampleDepth = (float)fy / ((float)engine->getFrameBufferSize().Y / 2.0f);
+
+                    float fStartX = (fFarX1 - fNearX1) / (fSampleDepth)+fNearX1;
+                    float fStartY = (fFarY1 - fNearY1) / (fSampleDepth)+fNearY1;
+                    float fEndX = (fFarX2 - fNearX2) / (fSampleDepth)+fNearX2;
+                    float fEndY = (fFarY2 - fNearY2) / (fSampleDepth)+fNearY2;
+
+                    for (int fx = 0; fx < engine->getFrameBufferSize().X; fx+=2) {
+                        float fSampleWidth = (float)fx / (float)engine->getFrameBufferSize().X;
+                        float fSampleX = (fEndX - fStartX) * fSampleWidth + fStartX;
+                        float fSampleY = (fEndY - fStartY) * fSampleWidth + fStartY;
+
+                        fSampleX = fmod(fSampleX, 0.5f);
+                        fSampleY = fmod(fSampleY, 0.5f);
+
+                        engine->frameBufferFillRect({ (float)fx, (float)fy + engine->getFrameBufferSize().Y / 2.f }, { (float)fx + 2.f, ((float)fy + engine->getFrameBufferSize().Y / 2.f) + 2.f }, engine->textureMap[4]->fSample({ fSampleX + 0.5f, fSampleY + 0.5f }));
+                    }
                 }
+
+
+
+
+
+
+
+                //int floorSegments = 50;
+                //float floorSegmentHeight = (640 / 2.f) / floorSegments;
+
+                //float floorDistanceMin = 5.f;
+                //float floorDistanceMax = 2000.f;
+
+                //for (int i = 0; i < floorSegments; i++) {
+                //    fVec2 floorMin = { 0, (480 / 2) + (floorSegmentHeight * (float)i) };
+                //    fVec2 floorMax = { 640, (480 / 2) + (floorSegmentHeight * (float)(i + 1)) };
+
+                //    float floorDistance = floorDistanceMax - (floorDistanceMin + ((floorDistanceMax - floorDistanceMin) / floorSegments) * i);
+                //    float floorBrightness = (engine->plr->cameraLumens / (floorDistance * floorDistance)) * engine->plr->cameraCandella;
+
+                //    RGE::RGBA segmentColour = RGE::RGBA(floorBrightness, floorBrightness, floorBrightness);
+                //    engine->frameBufferFillRect(floorMin, floorMax, segmentColour);
+                //    engine->frameBufferFillRect({ floorMin.X, (480 / 2) - (floorSegmentHeight * (float)(i + 1)) }, { floorMax.X, (480 / 2) - (floorSegmentHeight * (float)(i)) }, segmentColour);
+                //}
             }
 
             int rayCount = 320;
@@ -343,22 +392,19 @@ int main()
 
                         RGE::RGETexture* currentTexture = engine->textureMap[imp.surface.textureID];
 
-                        float trueDistance = 0;
+                        float xOffset = 0;
                         float unused = 0;
                         if (currentTexture->mode == RGE::textureMode::tile) {
-                            trueDistance = std::modf(imp.trueDistanceFromLineOrigin / (float)(currentTexture->X * 4.f), &unused);
+                            xOffset = std::modf(imp.trueDistanceFromLineOrigin / (float)(currentTexture->X * 4.f), &unused);
                         }
                         else {
-                            trueDistance = imp.distanceFromLineOrigin;
+                            xOffset = imp.distanceFromLineOrigin;
                         }
 
-                        int tpo = trueDistance * currentTexture->X;
+                        int tpo = xOffset * currentTexture->X;
                         int dataOffset = (tpo * currentTexture->X);
 
-
-                        //drawSegmentedTest(barMin, barMax, 1, colour);
-                        engine->frameBufferFillRectSegmented(barMin, barMax, currentTexture, trueDistance, brightness);
-                        //engine->frameBufferFillRect(barMin, barMax, colour);
+                        engine->frameBufferFillRectSegmented(barMin, barMax, currentTexture, xOffset, brightness);
 
                         frameTotalBrightness += brightness;
                         frameBrightnessAverage = frameTotalBrightness / i;
