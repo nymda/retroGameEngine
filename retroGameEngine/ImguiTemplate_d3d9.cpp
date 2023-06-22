@@ -357,7 +357,7 @@ int main()
 
 
                         //drawSegmentedTest(barMin, barMax, 1, colour);
-                        engine->frameBufferFillRectSegmented(barMin, barMax, (RGE::RGBA*)(currentTexture->data + dataOffset), currentTexture->X, brightness);
+                        engine->frameBufferFillRectSegmented(barMin, barMax, currentTexture, trueDistance, brightness);
                         //engine->frameBufferFillRect(barMin, barMax, colour);
 
                         frameTotalBrightness += brightness;

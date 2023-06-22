@@ -76,7 +76,7 @@ void RGE::RGEngine::initTextureFromDisk(const char* path, textureMode mode, int 
 	this->textureMap[textureIndex] = nt;
 }
 
-void RGE::RGEngine::frameBufferFillRectSegmented(fVec2 p1, fVec2 p2, RGBA colours[], int colourCount, float brightnessModifier) {
+void RGE::RGEngine::frameBufferFillRectSegmented(fVec2 p1, fVec2 p2, RGETexture* texture, float offset, float brightnessModifier) {
 	
 	fVec2 min = p1;
 	fVec2 max = p2;
@@ -93,16 +93,21 @@ void RGE::RGEngine::frameBufferFillRectSegmented(fVec2 p1, fVec2 p2, RGBA colour
 		max.Y = p1.Y;
 	}
 	
-	float lineSizeY = (float)max.Y - (float)min.Y;
-	float segmentSizeY = lineSizeY / (float)colourCount;
+	int textureY = texture->Y;
 
-	for (int i = 0; i < colourCount; i++) {
+	float lineSizeY = (float)max.Y - (float)min.Y;
+	float segmentSizeY = lineSizeY / (float)textureY;
+
+	for (int i = 0; i < textureY; i++) {
 		fVec2 segmentMin = { (min.X), (min.Y + (segmentSizeY * (float)i)) };
 		fVec2 segmentMax = { (max.X), (min.Y + (segmentSizeY * (float)(i + 1.f))) };
 
-		float newR = (float)((float)colours[i].R / 256.f) * brightnessModifier;
-		float newG = (float)((float)colours[i].G / 256.f) * brightnessModifier;
-		float newB = (float)((float)colours[i].B / 256.f) * brightnessModifier;
+		float yLvl = i * (1.f / (float)textureY);
+		RGBA colour = texture->fSample({ offset, yLvl });
+
+		float newR = (float)((float)colour.R / 256.f) * brightnessModifier;
+		float newG = (float)((float)colour.G / 256.f) * brightnessModifier;
+		float newB = (float)((float)colour.B / 256.f) * brightnessModifier;
 
 		frameBufferFillRect(segmentMin, segmentMax, RGBA(newR, newG, newB));
 	}

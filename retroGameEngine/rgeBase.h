@@ -103,6 +103,16 @@ namespace RGE {
 		int X;
 		int Y;
 		textureMode mode = textureMode::tile;
+
+		RGBA fSample(fVec2 pos) {
+			if (pos.X < 0.f || pos.X > 1.f) { return RGBA(1.f, 0.f, 0.f); }
+			if (pos.Y < 0.f || pos.Y > 1.f) { return RGBA(1.f, 0.f, 0.f); }
+
+			int iX = (pos.X * (float)X);
+			int iY = (pos.Y * (float)Y);
+
+			return data[(iY * X) + iX];
+		}
 	};
 
 	struct line {
@@ -254,7 +264,7 @@ namespace RGE {
 		//texture functions
 		void initDefaultTexture();
 		void initTextureFromDisk(const char* path, textureMode mode, int textureIndex);
-		void frameBufferFillRectSegmented(fVec2 p1, fVec2 p2, RGBA colours[], int colourCount, float brightnessModifier);
+		void frameBufferFillRectSegmented(fVec2 p1, fVec2 p2, RGETexture* texture, float offset, float brightnessModifier);
 
 		RGEngine() {
 			initializeFontRenderer();
