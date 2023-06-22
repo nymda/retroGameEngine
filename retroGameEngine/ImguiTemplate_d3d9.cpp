@@ -154,12 +154,31 @@ void drawSegmentedTest(fVec2 p1, fVec2 p2, int segmentCount, RGE::RGBA colour) {
     }
 }
 
+int closest(int search) {
+    int levels[] = { 10, 20, 50, 100, 250, 500 };
+	int closest = levels[0];
+
+	for (int i = 0; i < 6; i++)
+	{
+		if (abs(search - levels[i]) < abs(search - closest))
+		{
+			closest = levels[i];
+		}
+	}
+
+	return closest;
+}
+
 void renderMap() {
 
     fVec2 screenMin = s2w({ 0.f, 0.f });
 	fVec2 screenMax = s2w({ 640.f, 480.f });
 
-    float gridDensity = 0.0200;
+    float mapVisibleWidth = ((screenMax.X - screenMin.X) / mapScale.X) / 640.f;
+
+	printf_s("mvw: %f\n", 1.f);
+    
+    float gridDensity = 0.01f;
     float stepSize = 1.f / gridDensity;
 
     int startX = std::ceil(screenMin.X / stepSize) * stepSize;
@@ -172,6 +191,7 @@ void renderMap() {
             engine->frameBufferDrawPixel(screenPoint, RGE::RGBA(1.f, 1.f, 1.f));
         }
     }
+    
     
     //causes lag at very zoomed in zoom levels, idk
     for (RGE::wall& w : engine->map->build()) {
