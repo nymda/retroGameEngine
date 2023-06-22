@@ -154,6 +154,48 @@ void drawSegmentedTest(fVec2 p1, fVec2 p2, int segmentCount, RGE::RGBA colour) {
     }
 }
 
+int closest(int search) {
+    int levels[] = { 10, 20, 50, 100, 250, 500 };
+	int closest = levels[0];
+
+	for (int i = 0; i < 6; i++)
+	{
+		if (abs(search - levels[i]) < abs(search - closest))
+		{
+			closest = levels[i];
+		}
+	}
+
+	return closest;
+}
+
+void renderMap() {
+
+    fVec2 screenMin = s2w({ 0.f, 0.f });
+	fVec2 screenMax = s2w({ 640.f, 480.f });
+
+    float gridDensity = 0.01f;
+    float stepSize = 1.f / gridDensity;
+
+    int startX = std::ceil(screenMin.X / stepSize) * stepSize;
+    int startY = std::ceil(screenMin.Y / stepSize) * stepSize;
+    
+    for (float x = startX; x < screenMax.X; x += stepSize) {
+        for (float y = startY; y < screenMax.Y; y += stepSize) {
+            fVec2 point = { x, y };
+            fVec2 screenPoint = w2s(point);
+            engine->frameBufferDrawPixel(screenPoint, RGE::RGBA(1.f, 1.f, 1.f));
+        }
+    }
+      
+    //causes lag at very zoomed in zoom levels, idk
+    for (RGE::wall& w : engine->map->build()) {
+        fVec2 p1Int = { w.line.p1.X, w.line.p1.Y };
+        fVec2 p2Int = { w.line.p2.X, w.line.p2.Y };
+        engine->frameBufferDrawLine(w2s(p1Int), w2s(p2Int), w.colour);
+    }
+}
+
 int main()
 {
     WNDCLASSEX wc = { sizeof(WNDCLASSEX), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(NULL), NULL, NULL, NULL, NULL, _T("RGE"), NULL };
@@ -328,11 +370,7 @@ int main()
             }
 
             if (mode == dispMode::map) {
-                for (RGE::wall& w : engine->map->build()) {
-                    fVec2 p1Int = { w.line.p1.X, w.line.p1.Y };
-                    fVec2 p2Int = { w.line.p2.X, w.line.p2.Y };
-                    engine->frameBufferDrawLine(w2s(p1Int), w2s(p2Int), w.colour);
-                }
+                renderMap();
             }
 
 			char fps[32];
