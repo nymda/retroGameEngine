@@ -176,8 +176,6 @@ void renderMap() {
 
     float mapVisibleWidth = ((screenMax.X - screenMin.X) / mapScale.X) / 640.f;
 
-	printf_s("mvw: %f\n", 1.f);
-    
     float gridDensity = 0.01f;
     float stepSize = 1.f / gridDensity;
 
