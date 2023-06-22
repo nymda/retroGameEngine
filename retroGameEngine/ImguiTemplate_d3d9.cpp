@@ -178,6 +178,7 @@ void renderMap() {
     int sneed = closest((int)mapVisibleWidth * 10);
     
     //loops cause lag at very zoomed out zoom levels (due to screenMin to screenMax being larger?)
+    //this is stupid innefficient bullshit there are better ways of doing this
 	for (float x = screenMin.X; x < screenMax.X; x += 1.f) {
 		for (float y = screenMin.Y; y < screenMax.Y; y += 1.f) {
             
