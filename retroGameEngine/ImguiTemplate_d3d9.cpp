@@ -277,28 +277,28 @@ int main()
     engine->initTextureFromDisk("bricktexture.png", RGE::textureMode::tile, 1);
     engine->initTextureFromDisk("concrete.png", RGE::textureMode::tile, 2);
     engine->initTextureFromDisk("gobid.png", RGE::textureMode::stretch, 3);
-    engine->initTextureFromDisk("floor.png", RGE::textureMode::stretch, 4);
+    engine->initTextureFromDisk("katta.png", RGE::textureMode::stretch, 4);
 
     mapOffset = { -640 / 2, -480 / 2 };
     
     RGE::wall T;
     T.line = { {-500, -500}, {500, -500} };
-    T.colour = RGE::RGBA(255, 100, 100, 255);
+    T.colour = RGE::RGBA(100, 100, 100, 255);
     T.textureID = 1;
 
     RGE::wall B;
     B.line = { {-500, 500}, {500, 500} };
-    B.colour = RGE::RGBA(100, 255, 100, 255);
+    B.colour = RGE::RGBA(100, 100, 100, 255);
     B.textureID = 1;
 
     RGE::wall L;
     L.line = { {-500, -500}, {-500, 500} };
-    L.colour = RGE::RGBA(100, 100, 255, 255);
+    L.colour = RGE::RGBA(100, 100, 100, 255);
     L.textureID = 1;
 
     RGE::wall R;
     R.line = { {500, -500}, {500, 500} };
-    R.colour = RGE::RGBA(255, 255, 255, 255);
+    R.colour = RGE::RGBA(100, 100, 100, 255);
     R.textureID = 1;
 
     engine->map->addStaticWall(T);
@@ -319,12 +319,12 @@ int main()
     RGE::wall gL;
     gL.line = { {-400, -400}, {-400, -200} };
     gL.colour = RGE::RGBA(200, 100, 0, 255);
-    gL.textureID = 3;
+    gL.textureID = 4;
 
     RGE::wall gR;
     gR.line = { {-200, -200}, {-200, -400} };
     gR.colour = RGE::RGBA(200, 100, 0, 255);
-    gR.textureID = 3;
+    gR.textureID = 4;
 
     engine->map->addStaticWall(gT);
     engine->map->addStaticWall(gB);
@@ -396,7 +396,7 @@ int main()
                 RGE::raycastResponse hinf = {};
 
                 if (engine->castRay(engine->plr->position, offsetAngle, engine->plr->angle, engine->plr->cameraMaxDistance, &hinf)) {
-                    if (mode == dispMode::map) { engine->frameBufferDrawLine(w2s(engine->plr->position), w2s(hinf.impacts.back().position), hinf.impacts.back().surfaceColour); }
+                    if (mode == dispMode::map) { engine->frameBufferDrawLine(w2s(engine->plr->position), w2s(hinf.impacts.back().position), RGE::RGBA(100, 100, 100)); }
                 }
                 else {
                     fVec2 target = { engine->plr->position.X + (cos(offsetAngle) * engine->plr->cameraMaxDistance), engine->plr->position.Y + (sin(offsetAngle) * engine->plr->cameraMaxDistance) };
