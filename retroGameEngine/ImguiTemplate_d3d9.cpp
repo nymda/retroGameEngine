@@ -196,6 +196,75 @@ void renderMap() {
     }
 }
 
+void renderFloorType0() {
+    engine->frameBufferFillRect({ 0, 0 }, { (float)engine->getFrameBufferSize().X, (float)engine->getFrameBufferSize().Y / 2 }, RGE::RGBA(0.5f, 0.5f, 0.5f));
+	engine->frameBufferFillRect({ 0, (float)engine->getFrameBufferSize().Y / 2 }, { (float)engine->getFrameBufferSize().X, (float)engine->getFrameBufferSize().Y }, RGE::RGBA(0.2f, 0.2f, 0.2f));
+}
+
+void renderFloorType1(){
+    int floorSegments = 50;
+    float floorSegmentHeight = (640 / 2.f) / floorSegments;
+
+    float floorDistanceMin = 5.f;
+    float floorDistanceMax = 2000.f;
+
+    for (int i = 0; i < floorSegments; i++) {
+        fVec2 floorMin = { 0, (480 / 2) + (floorSegmentHeight * (float)i) };
+        fVec2 floorMax = { 640, (480 / 2) + (floorSegmentHeight * (float)(i + 1)) };
+
+        float floorDistance = floorDistanceMax - (floorDistanceMin + ((floorDistanceMax - floorDistanceMin) / floorSegments) * i);
+        float floorBrightness = (engine->plr->cameraLumens / (floorDistance * floorDistance)) * engine->plr->cameraCandella;
+        floorBrightness = fmin(floorBrightness, 1.5f);
+        floorBrightness = fmax(floorBrightness, 0.1f);
+
+        RGE::RGBA segmentColour = RGE::RGBA(floorBrightness, floorBrightness, floorBrightness);
+        engine->frameBufferFillRect(floorMin, floorMax, segmentColour);
+        engine->frameBufferFillRect({ floorMin.X, (480 / 2) - (floorSegmentHeight * (float)(i + 1)) }, { floorMax.X, (480 / 2) - (floorSegmentHeight * (float)(i)) }, segmentColour);
+    }
+}
+
+void renderFloorType2() {
+    float fWorldX = engine->plr->position.X / 10000.f;
+    float fWorldY = engine->plr->position.Y / 10000.f;
+    float fWorldA = engine->plr->angle;
+    float fNear = 0.0f;
+    float fFar = 0.0001f;
+    float fFoVHalf = ((pi / 2.f) / 1.75f) / 2.f;
+
+    float fFarX1 = fWorldX + cosf(fWorldA - fFoVHalf) * fFar;
+    float fFarY1 = fWorldY + sinf(fWorldA - fFoVHalf) * fFar;
+
+    float fNearX1 = fWorldX + cosf(fWorldA - fFoVHalf) * fNear;
+    float fNearY1 = fWorldY + sinf(fWorldA - fFoVHalf) * fNear;
+
+    float fFarX2 = fWorldX + cosf(fWorldA + fFoVHalf) * fFar;
+    float fFarY2 = fWorldY + sinf(fWorldA + fFoVHalf) * fFar;
+
+    float fNearX2 = fWorldX + cosf(fWorldA + fFoVHalf) * fNear;
+    float fNearY2 = fWorldY + sinf(fWorldA + fFoVHalf) * fNear;
+
+    for (int fy = 1; fy < engine->getFrameBufferSize().Y / 2.F; fy += 2) {
+
+        float fSampleDepth = (float)fy / ((float)engine->getFrameBufferSize().Y / 2.0f);
+
+        float fStartX = (fFarX1 - fNearX1) / (fSampleDepth)+fNearX1;
+        float fStartY = (fFarY1 - fNearY1) / (fSampleDepth)+fNearY1;
+        float fEndX = (fFarX2 - fNearX2) / (fSampleDepth)+fNearX2;
+        float fEndY = (fFarY2 - fNearY2) / (fSampleDepth)+fNearY2;
+
+        for (int fx = 0; fx < engine->getFrameBufferSize().X; fx += 2) {
+            float fSampleWidth = (float)fx / (float)engine->getFrameBufferSize().X;
+            float fSampleX = (fEndX - fStartX) * fSampleWidth + fStartX;
+            float fSampleY = (fEndY - fStartY) * fSampleWidth + fStartY;
+
+            fSampleX = fmod(fSampleX, 0.5f);
+            fSampleY = fmod(fSampleY, 0.5f);
+
+            engine->frameBufferFillRect({ (float)fx, (float)fy + engine->getFrameBufferSize().Y / 2.f }, { (float)fx + 2.f, ((float)fy + engine->getFrameBufferSize().Y / 2.f) + 2.f }, engine->textureMap[4]->fSample({ fSampleX + 0.5f, fSampleY + 0.5f }));
+        }
+    }
+}
+
 int main()
 {
     WNDCLASSEX wc = { sizeof(WNDCLASSEX), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(NULL), NULL, NULL, NULL, NULL, _T("RGE"), NULL };
@@ -290,72 +359,8 @@ int main()
 
             RGE::RGETexture* floor = engine->textureMap[4];
 
-            if (mode == dispMode::render) {
-                float fWorldX = engine->plr->position.X / 10000.f;
-                float fWorldY = engine->plr->position.Y / 10000.f;
-                float fWorldA = engine->plr->angle;
-                float fNear = 0.005f;
-                float fFar = 0.03f;
-                float fFoVHalf = ((pi / 2.f) / 1.75f) / 2.f;
-
-                float fFarX1 = fWorldX + cosf(fWorldA - fFoVHalf) * fFar;
-                float fFarY1 = fWorldY + sinf(fWorldA - fFoVHalf) * fFar;
-
-                float fNearX1 = fWorldX + cosf(fWorldA - fFoVHalf) * fNear;
-                float fNearY1 = fWorldY + sinf(fWorldA - fFoVHalf) * fNear;
-
-                float fFarX2 = fWorldX + cosf(fWorldA + fFoVHalf) * fFar;
-                float fFarY2 = fWorldY + sinf(fWorldA + fFoVHalf) * fFar;
-
-                float fNearX2 = fWorldX + cosf(fWorldA + fFoVHalf) * fNear;
-                float fNearY2 = fWorldY + sinf(fWorldA + fFoVHalf) * fNear;
-
-                for (int fy = 1; fy < engine->getFrameBufferSize().Y / 2.F; fy+=2) {
-
-                    float fSampleDepth = (float)fy / ((float)engine->getFrameBufferSize().Y / 2.0f);
-
-                    float fStartX = (fFarX1 - fNearX1) / (fSampleDepth)+fNearX1;
-                    float fStartY = (fFarY1 - fNearY1) / (fSampleDepth)+fNearY1;
-                    float fEndX = (fFarX2 - fNearX2) / (fSampleDepth)+fNearX2;
-                    float fEndY = (fFarY2 - fNearY2) / (fSampleDepth)+fNearY2;
-
-                    for (int fx = 0; fx < engine->getFrameBufferSize().X; fx+=2) {
-                        float fSampleWidth = (float)fx / (float)engine->getFrameBufferSize().X;
-                        float fSampleX = (fEndX - fStartX) * fSampleWidth + fStartX;
-                        float fSampleY = (fEndY - fStartY) * fSampleWidth + fStartY;
-
-                        fSampleX = fmod(fSampleX, 0.5f);
-                        fSampleY = fmod(fSampleY, 0.5f);
-
-                        engine->frameBufferFillRect({ (float)fx, (float)fy + engine->getFrameBufferSize().Y / 2.f }, { (float)fx + 2.f, ((float)fy + engine->getFrameBufferSize().Y / 2.f) + 2.f }, engine->textureMap[4]->fSample({ fSampleX + 0.5f, fSampleY + 0.5f }));
-                    }
-                }
-
-
-
-
-
-
-
-                //int floorSegments = 50;
-                //float floorSegmentHeight = (640 / 2.f) / floorSegments;
-
-                //float floorDistanceMin = 5.f;
-                //float floorDistanceMax = 2000.f;
-
-                //for (int i = 0; i < floorSegments; i++) {
-                //    fVec2 floorMin = { 0, (480 / 2) + (floorSegmentHeight * (float)i) };
-                //    fVec2 floorMax = { 640, (480 / 2) + (floorSegmentHeight * (float)(i + 1)) };
-
-                //    float floorDistance = floorDistanceMax - (floorDistanceMin + ((floorDistanceMax - floorDistanceMin) / floorSegments) * i);
-                //    float floorBrightness = (engine->plr->cameraLumens / (floorDistance * floorDistance)) * engine->plr->cameraCandella;
-
-                //    RGE::RGBA segmentColour = RGE::RGBA(floorBrightness, floorBrightness, floorBrightness);
-                //    engine->frameBufferFillRect(floorMin, floorMax, segmentColour);
-                //    engine->frameBufferFillRect({ floorMin.X, (480 / 2) - (floorSegmentHeight * (float)(i + 1)) }, { floorMax.X, (480 / 2) - (floorSegmentHeight * (float)(i)) }, segmentColour);
-                //}
-            }
-
+            if (mode == dispMode::render) { renderFloorType1(); }
+            
             int rayCount = 320;
             for (int i = 0; i < rayCount; i++) {
 
@@ -406,6 +411,14 @@ int main()
 
                         engine->frameBufferFillRectSegmented(barMin, barMax, currentTexture, xOffset, brightness);
 
+						//fVec2 barBottomToScreenEdgeStart = { barMin.X, barMax.Y };
+      //                  fVec2 barBottomToScreenEdgeEnd = { barMax.X, dispHeight };
+						////engine->frameBufferFillRect(barBottomToScreenEdgeStart, barBottomToScreenEdgeEnd, RGE::RGBA(1.f, 0.f, 0.f));
+      //                  
+      //                  RGE::RGETexture* floorTexture = engine->textureMap[4];
+      //                  engine->frameBufferFillRectSegmented(barBottomToScreenEdgeStart, barBottomToScreenEdgeEnd, floorTexture, (float)((i * 2) / 640), brightness);
+
+                        
                         frameTotalBrightness += brightness;
                         frameBrightnessAverage = frameTotalBrightness / i;
                         if (brightness > 1.f) {
