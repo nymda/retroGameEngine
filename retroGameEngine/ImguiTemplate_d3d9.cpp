@@ -305,7 +305,32 @@ int main()
     engine->map->addStaticWall(B);
     engine->map->addStaticWall(L);
     engine->map->addStaticWall(R);
+    
+    RGE::wall gT;
+    gT.line = { {-200, -400}, {-400, -400} };
+    gT.colour = RGE::RGBA(200, 100, 0, 255);
+    gT.textureID = 3;
 
+    RGE::wall gB;
+    gB.line = { {-400, -200}, {-200, -200} };
+    gB.colour = RGE::RGBA(200, 100, 0, 255);
+    gB.textureID = 3;
+
+    RGE::wall gL;
+    gL.line = { {-400, -400}, {-400, -200} };
+    gL.colour = RGE::RGBA(200, 100, 0, 255);
+    gL.textureID = 3;
+
+    RGE::wall gR;
+    gR.line = { {-200, -200}, {-200, -400} };
+    gR.colour = RGE::RGBA(200, 100, 0, 255);
+    gR.textureID = 3;
+
+    engine->map->addStaticWall(gT);
+    engine->map->addStaticWall(gB);
+    engine->map->addStaticWall(gL);
+    engine->map->addStaticWall(gR);
+    
     // Initialize Direct3D
     if (!CreateDeviceD3D(hWnd))
     {
