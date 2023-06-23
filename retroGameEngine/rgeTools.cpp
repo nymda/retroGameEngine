@@ -13,6 +13,10 @@ fVec2 angleToVector(float angle) {
     return { (float)cos(angle), (float)sin(angle) };
 }
 
+float vectorToAngle(fVec2 vector) {
+    return atan2(vector.Y, vector.X);
+}
+
 fVec2 vectorToPoint(fVec2 source, fVec2 target) {
     fVec2 v = { target.X - source.X, target.Y - source.Y };
     return normalise(v);

@@ -147,7 +147,7 @@ namespace RGE {
 
 	class RGEPlayer {
 	public:
-		float angle = pi / 2.f;
+		float angle = pi;
 		fVec2 position = { 0.f, 0.f };
 
 		float cameraMaxDistance = 5000.f;
