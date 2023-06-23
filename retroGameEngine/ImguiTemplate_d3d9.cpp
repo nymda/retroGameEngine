@@ -124,51 +124,6 @@ fVec2 s2w(fVec2 screen) {
 	return r;
 }
 
-void drawSegmentedTest(fVec2 p1, fVec2 p2, int segmentCount, RGE::RGBA colour) {
-
-    fVec2 min = p1;
-    fVec2 max = p2;
-
-    if (p1.X > p2.X)
-    {
-        min.X = p2.X;
-        max.X = p1.X;
-    }
-
-    if (p1.Y > p2.Y)
-    {
-        min.Y = p2.Y;
-        max.Y = p1.Y;
-    }
-
-    float lineSizeY = (float)max.Y - (float)min.Y;
-    float segmentSizeY = lineSizeY / (float)segmentCount;
-
-    //this->frameBufferFillRect(min, max, colours[0]);
-
-    for (int i = 0; i < segmentCount; i++) {
-        fVec2 segmentMin = { (min.X), (min.Y + (segmentSizeY * i)) };
-        fVec2 segmentMax = { (max.X), (min.Y + (segmentSizeY * (i + 1))) };
-
-        engine->frameBufferFillRect(segmentMin, segmentMax, colour);
-    }
-}
-
-int closest(int search) {
-    int levels[] = { 10, 20, 50, 100, 250, 500 };
-	int closest = levels[0];
-
-	for (int i = 0; i < 6; i++)
-	{
-		if (abs(search - levels[i]) < abs(search - closest))
-		{
-			closest = levels[i];
-		}
-	}
-
-	return closest;
-}
-
 void renderMap() {
 
     fVec2 screenMin = s2w({ 0.f, 0.f });
