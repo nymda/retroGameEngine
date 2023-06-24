@@ -48,18 +48,6 @@ POINT GetMousePos(HWND hWnd)
     return cursorPos;
 }
 
-float posX = 0.f;
-float posY = 0.f;
-
-float dirX = -1.f;
-float dirY = 0.f;
-
-float planeX = 0.f;
-float planeY = 0.5f;
-
-float moveSpeed = 0.1f;
-float rotSpeed = 0.05f;
-
 fVec2 a2v_dir(float angle) {
     fVec2 dir = { -1.f, 0.f };
 
@@ -235,25 +223,25 @@ void renderFloorType1(){
 void renderFloorType2() {
 
     //stores graphic information, can be sampled later
-    RGE::RGETexture* floorTexture = engine->textureMap[1];
+    RGE::RGETexture* floorTexture = engine->textureMap[2];
 
     int screenWidth = engine->getFrameBufferSize().X;
     int screenHeight = engine->getFrameBufferSize().Y;
 
-    posX = engine->plr->position.X;
-    posY = engine->plr->position.Y;
+    float posX = engine->plr->position.X;
+    float posY = engine->plr->position.Y;
 
     float playerAngle = engine->plr->angle;
     
-    fVec2 angleModifieed = a2v_dir(-playerAngle);
-    dirX = angleModifieed.X;
-    dirY = angleModifieed.Y;
+    fVec2 angleModifieed = a2v_dir(playerAngle);
+    float dirX = angleModifieed.X;
+    float dirY = angleModifieed.Y;
 
-    fVec2 planeModified = a2v_plane(-playerAngle);
-    planeX = planeModified.X;
-    planeY = planeModified.Y;
+    fVec2 planeModified = a2v_plane(playerAngle);
+    float planeX = planeModified.X;
+    float planeY = planeModified.Y;
     
-    for (int y = 0; y < engine->getFrameBufferSize().Y; y++) {
+    for (int y = 0; y < engine->getFrameBufferSize().Y / 2; y++) {
         // rayDir for leftmost ray (x = 0) and rightmost ray (x = w)
         float rayDirX0 = dirX - planeX;
         float rayDirY0 = dirY - planeY;
@@ -290,7 +278,7 @@ void renderFloorType2() {
             floorY += floorStepY;
 
             //fSample takes an fVec2 between 0 and 1 on each axis and returns the colour at that point
-            engine->frameBufferDrawPixel({ (float)x, (float)y }, floorTexture->fSample({ (float)tx / floorTexture->X, (float)ty / floorTexture->Y }));
+            engine->frameBufferDrawPixel({ (float)engine->getFrameBufferSize().X - (float)x, engine->getFrameBufferSize().Y - (float)y }, floorTexture->fSample({ (float)tx / floorTexture->X, (float)ty / floorTexture->Y }));
         }
     }
 }
@@ -414,7 +402,7 @@ int main()
 
             RGE::RGETexture* floor = engine->textureMap[4];
 
-            if (mode == dispMode::render) { renderFloorType1(); }
+            if (mode == dispMode::render) { renderFloorType2(); }
             
             int rayCount = 320;
             for (int i = 0; i < rayCount; i++) {
