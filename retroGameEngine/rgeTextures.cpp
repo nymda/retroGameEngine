@@ -7,7 +7,7 @@
 void RGE::RGEngine::initDefaultTexture() {
 	RGETexture* nt = new RGETexture;
 
-	int defaultTextureRes = 8;
+	int defaultTextureRes = 32;
 
 	nt->data = (RGBA*)malloc(sizeof(RGBA) * (defaultTextureRes * defaultTextureRes));
 	if (!nt->data) { return; }
@@ -18,7 +18,7 @@ void RGE::RGEngine::initDefaultTexture() {
 	bool swap = true;
 	for (int i = 0; i < (defaultTextureRes * defaultTextureRes); i++) {
 		swap = !swap;
-		if (i % 32 == 0) { swap = !swap; }
+		if (i % defaultTextureRes == 0) { swap = !swap; }
 		nt->data[i] = swap ? p : b;
 	}
 

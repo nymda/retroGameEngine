@@ -198,11 +198,13 @@ bool testDistanceFast(fVec2 a, fVec2 b, float distance) {
 enum mapState {
     hunting = 0,
     drawing = 1,
-    deleting = 2
+    deleting = 3
 };
 
-void renderMap() {
+fVec2 mapSelectedNode = { -1.f, -1.f };
+mapState mapState = mapState::hunting;
 
+void renderMap() {
     fVec2 screenMin = s2w({ 0.f, 0.f });
 	fVec2 screenMax = s2w({ 640.f, 480.f });
 
@@ -235,6 +237,34 @@ void renderMap() {
     if (hasNearby) {
         fVec2 screenPoint = w2s(nearby);
         engine->frameBufferFillRect({ screenPoint.X - 5.f, screenPoint.Y - 5.f }, { screenPoint.X + 5.f,  screenPoint.Y + 5.f }, RGE::RGBA(1.f, 0.f, 0.f));
+    }
+
+    if (GetKeyState(VK_LBUTTON) < 0) {
+        if (mapState == mapState::hunting && hasNearby) {
+            mapSelectedNode = nearby;
+            mapState = mapState::drawing;
+		}
+        else if (mapState == mapState::drawing && hasNearby && !(mapSelectedNode.X == nearby.X && mapSelectedNode.Y == nearby.Y)) {
+
+            RGE::wall newWall;
+            newWall.line.p1 = mapSelectedNode;
+            newWall.line.p2 = nearby;
+            newWall.colour = RGE::RGBA(1.f, 1.f, 1.f);
+            newWall.textureID = 0;
+            engine->map->addStaticWall(newWall);
+
+            mapState = mapState::hunting;
+        }
+    }
+
+    if (GetKeyState(VK_ESCAPE) < 0) {
+        mapSelectedNode = {-1.f, -1.f };
+        mapState = mapState::hunting;
+    }
+
+    if (mapState == mapState::drawing) {
+        fVec2 screenPoint = w2s(mapSelectedNode);
+        engine->frameBufferFillRect({ screenPoint.X - 2.5f, screenPoint.Y - 2.5f }, { screenPoint.X + 2.5f,  screenPoint.Y + 2.5f }, RGE::RGBA(0.f, 0.f, 1.f));
     }
       
     //causes lag at very zoomed in zoom levels, idk
@@ -486,41 +516,41 @@ int main()
                 if (mode == dispMode::render) {
                     if (hinf.impactCount == 0) { continue; }
 
-                    for (RGE::raycastImpact imp : hinf.impacts) {
-                        float dispHeight = engine->getFrameBufferSize().Y;
-                        float apparentSize = dispHeight * engine->plr->cameraFocal / imp.distanceFromOrigin;
-                        float height = apparentSize * dispHeight;
+                    RGE::raycastImpact imp = hinf.impacts.back();
 
-                        fVec2 barMin = { (2 * i), (dispHeight / 2) - (height / 2.f) };
-                        fVec2 barMax = { (2 * i) + 1, (dispHeight / 2) + (height / 2.f) };
+                    float dispHeight = engine->getFrameBufferSize().Y;
+                    float apparentSize = dispHeight * engine->plr->cameraFocal / imp.distanceFromOrigin;
+                    float height = apparentSize * dispHeight;
 
-                        float brightness = (engine->plr->cameraLumens / (imp.distanceFromOrigin * imp.distanceFromOrigin)) * engine->plr->cameraCandella;
-                        brightness = fmin(brightness, 1.5f);
-                        brightness = fmax(brightness, 0.1f);
+                    fVec2 barMin = { (2 * i), (dispHeight / 2) - (height / 2.f) };
+                    fVec2 barMax = { (2 * i) + 1, (dispHeight / 2) + (height / 2.f) };
 
-                        RGE::RGBA colour = RGE::RGBA((int)(brightness * (float)imp.surfaceColour.R), (int)(brightness * (float)imp.surfaceColour.G), (int)(brightness * (float)imp.surfaceColour.B));
+                    float brightness = (engine->plr->cameraLumens / (imp.distanceFromOrigin * imp.distanceFromOrigin)) * engine->plr->cameraCandella;
+                    brightness = fmin(brightness, 1.5f);
+                    brightness = fmax(brightness, 0.1f);
 
-                        RGE::RGETexture* currentTexture = engine->textureMap[imp.surface.textureID];
+                    RGE::RGBA colour = RGE::RGBA((int)(brightness * (float)imp.surfaceColour.R), (int)(brightness * (float)imp.surfaceColour.G), (int)(brightness * (float)imp.surfaceColour.B));
 
-                        float xOffset = 0;
-                        float unused = 0;
-                        if (currentTexture->mode == RGE::textureMode::tile) {
-                            xOffset = std::modf(imp.trueDistanceFromLineOrigin / (float)(currentTexture->X * 4.f), &unused);
-                        }
-                        else {
-                            xOffset = imp.distanceFromLineOrigin;
-                        }
+                    RGE::RGETexture* currentTexture = engine->textureMap[imp.surface.textureID];
 
-                        int tpo = xOffset * currentTexture->X;
-                        int dataOffset = (tpo * currentTexture->X);
+                    float xOffset = 0;
+                    float unused = 0;
+                    if (currentTexture->mode == RGE::textureMode::tile) {
+                        xOffset = std::modf(imp.trueDistanceFromLineOrigin / (float)(currentTexture->X * 4.f), &unused);
+                    }
+                    else {
+                        xOffset = imp.distanceFromLineOrigin;
+                    }
 
-                        engine->frameBufferFillRectSegmented(barMin, barMax, currentTexture, xOffset, 1.f);
-                        
-                        frameTotalBrightness += brightness;
-                        frameBrightnessAverage = frameTotalBrightness / i;
-                        if (brightness > 1.f) {
-                            overExposure = true;
-                        }
+                    int tpo = xOffset * currentTexture->X;
+                    int dataOffset = (tpo * currentTexture->X);
+
+                    engine->frameBufferFillRectSegmented(barMin, barMax, currentTexture, xOffset, 1.f);
+
+                    frameTotalBrightness += brightness;
+                    frameBrightnessAverage = frameTotalBrightness / i;
+                    if (brightness > 1.f) {
+                        overExposure = true;
                     }
                 }
             }
