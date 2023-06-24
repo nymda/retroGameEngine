@@ -5,6 +5,10 @@
 #include <tchar.h>
 #include "rgeBase.h"
 
+#include <shellscalingapi.h>
+
+#pragma comment(lib, "Shcore.lib")
+
 static LPDIRECT3D9              g_pD3D = NULL;
 static LPDIRECT3DDEVICE9        g_pd3dDevice = NULL;
 static D3DPRESENT_PARAMETERS    g_d3dpp = {};
@@ -40,13 +44,28 @@ fVec2 mapScale = { 1, 1 };
 fVec2 mapStartPan = { 0, 0 };
 fVec2 mousePos = { -1, -1 };
 
-POINT GetMousePos(HWND hWnd)
-{
-    POINT cursorPos;
-    GetCursorPos(&cursorPos);
-    ScreenToClient(hWnd, &cursorPos);
-    return cursorPos;
+
+fVec2 getWindowMin() {
+    RECT min;
+    GetWindowRect(hWnd, &min);
+    return { (float)min.left + 8, (float)min.top + 8 };
 }
+
+fVec2 getWindowMax() {
+    RECT min;
+    GetWindowRect(hWnd, &min);
+    return { (float)min.right, (float)min.bottom };
+}
+
+fVec2 GetMousePos(HWND hWnd)
+{
+    POINT p;
+    GetCursorPos(&p);
+    ScreenToClient(hWnd, &p);
+    fVec2 cursor = { (float)p.x, (float)p.y };
+    return { cursor.X, cursor.Y };
+}
+
 
 fVec2 a2v_dir(float angle) {
     fVec2 dir = { -1.f, 0.f };
@@ -73,6 +92,8 @@ fVec2 panStart = mousePos;
 
 //fires 60 times per second
 void timerCallback(HWND unnamedParam1, UINT unnamedParam2, UINT_PTR unnamedParam3, DWORD unnamedParam4) {
+
+    if (!(hWnd == GetActiveWindow())) { return; }
 
     if (GetKeyState(VK_LBUTTON) < 0) {
    
@@ -166,6 +187,20 @@ fVec2 s2w(fVec2 screen) {
 	return r;
 }
 
+bool testDistanceFast(fVec2 a, fVec2 b, float distance) {
+    if(a.X < b.X - distance) { return false; }
+    if(a.X > b.X + distance) { return false; }
+    if(a.Y < b.Y - distance) { return false; }
+    if(a.Y > b.Y + distance) { return false; }
+    return true;
+}
+
+enum mapState {
+    hunting = 0,
+    drawing = 1,
+    deleting = 2
+};
+
 void renderMap() {
 
     fVec2 screenMin = s2w({ 0.f, 0.f });
@@ -177,12 +212,29 @@ void renderMap() {
     int startX = std::ceil(screenMin.X / stepSize) * stepSize;
     int startY = std::ceil(screenMin.Y / stepSize) * stepSize;
     
+    fVec2 mouseWorld = s2w(mousePos);
+    fVec2 test = w2s(mouseWorld);
+
+    fVec2 nearby = { -1, -1 };
+    bool hasNearby = false;
+
     for (float x = startX; x < screenMax.X; x += stepSize) {
         for (float y = startY; y < screenMax.Y; y += stepSize) {
             fVec2 point = { x, y };
+
+            if (abs(distance(mouseWorld, point)) < 25.f) {
+                nearby = point;
+                hasNearby = true;
+			}
+
             fVec2 screenPoint = w2s(point);
             engine->frameBufferDrawPixel(screenPoint, RGE::RGBA(1.f, 1.f, 1.f));
         }
+    }
+
+    if (hasNearby) {
+        fVec2 screenPoint = w2s(nearby);
+        engine->frameBufferFillRect({ screenPoint.X - 5.f, screenPoint.Y - 5.f }, { screenPoint.X + 5.f,  screenPoint.Y + 5.f }, RGE::RGBA(1.f, 0.f, 0.f));
     }
       
     //causes lag at very zoomed in zoom levels, idk
@@ -223,7 +275,7 @@ void renderFloorType1(){
 void renderFloorType2() {
 
     //stores graphic information, can be sampled later
-    RGE::RGETexture* floorTexture = engine->textureMap[2];
+    RGE::RGETexture* floorTexture = engine->textureMap[1];
 
     int screenWidth = engine->getFrameBufferSize().X;
     int screenHeight = engine->getFrameBufferSize().Y;
@@ -256,7 +308,7 @@ void renderFloorType2() {
 
         // Horizontal distance from the camera to the floor for the current row.
         // 0.5 is the z position exactly in the middle between floor and ceiling.
-        float rowDistance = posZ / p;
+        float rowDistance = (posZ) / p;
 
         // calculate the real world step vector we have to add for each x (parallel to camera plane)
         // adding step by step avoids multiplications with a weight in the inner loop
@@ -264,11 +316,10 @@ void renderFloorType2() {
         float floorStepY = rowDistance * (rayDirY1 - rayDirY0) / screenWidth;
 
         // real world coordinates of the leftmost column. This will be updated as we step to the right.
-        float floorX = (posX / 251.f) + rowDistance * rayDirX0;
-        float floorY = (posY / 251.f) + rowDistance * rayDirY0;
+        float floorX = (posX / 250.f) + rowDistance * rayDirX0;
+        float floorY = (posY / 250.f) + rowDistance * rayDirY0;
 
         for (int x = 0; x < engine->getFrameBufferSize().X; x++) {
-
 
             // get the texture coordinate from the fractional part
             int tx = (int)(floorTexture->X * (floorX)) & (floorTexture->X - 1);
@@ -277,8 +328,10 @@ void renderFloorType2() {
             floorX += floorStepX;
             floorY += floorStepY;
 
-            //fSample takes an fVec2 between 0 and 1 on each axis and returns the colour at that point
-            engine->frameBufferDrawPixel({ (float)engine->getFrameBufferSize().X - (float)x, engine->getFrameBufferSize().Y - (float)y }, floorTexture->fSample({ (float)tx / floorTexture->X, (float)ty / floorTexture->Y }));
+            if (floorX < 2.f && floorX > -2.f && floorY < 2.f && floorY > -2.f){
+                //fSample takes an fVec2 between 0 and 1 on each axis and returns the colour at that point
+                engine->frameBufferDrawPixel({ (float)engine->getFrameBufferSize().X - (float)x, engine->getFrameBufferSize().Y - (float)y }, floorTexture->fSample({ (float)tx / floorTexture->X, (float)ty / floorTexture->Y }));
+            }
         }
     }
 }
@@ -287,7 +340,17 @@ int main()
 {
     WNDCLASSEX wc = { sizeof(WNDCLASSEX), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(NULL), NULL, NULL, NULL, NULL, _T("RGE"), NULL };
     ::RegisterClassEx(&wc);
-    hWnd = ::CreateWindow(wc.lpszClassName, _T("RGE"), WS_OVERLAPPEDWINDOW, 100, 100, 640, 480, NULL, NULL, wc.hInstance, NULL);
+
+    int clientWidth = 640;
+    int clientHeight = 480;
+
+    RECT windowRect = { 0, 0, clientWidth, clientHeight };
+
+    ::AdjustWindowRect(&windowRect, WS_OVERLAPPEDWINDOW, FALSE);
+
+    hWnd = ::CreateWindow(wc.lpszClassName, _T("RGE"), WS_OVERLAPPEDWINDOW & ~WS_SIZEBOX & ~WS_MAXIMIZEBOX, 100, 100, windowRect.right - windowRect.left, windowRect.bottom - windowRect.top, NULL, NULL, wc.hInstance, NULL);
+
+    SetProcessDPIAware();
 
     engine->allocFrameBuffer({ 640, 480 });
     frameBuffer = engine->getFrameBuffer();
@@ -380,8 +443,7 @@ int main()
             continue;
         }
 
-        POINT cp = GetMousePos(hWnd);
-        mousePos = { (float)cp.x, (float)cp.y };
+        mousePos = GetMousePos(hWnd);
 
         g_pd3dDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
         g_pd3dDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
@@ -402,7 +464,7 @@ int main()
 
             RGE::RGETexture* floor = engine->textureMap[4];
 
-            if (mode == dispMode::render) { renderFloorType2(); }
+            if (mode == dispMode::render) { renderFloorType0(); }
             
             int rayCount = 320;
             for (int i = 0; i < rayCount; i++) {
@@ -452,7 +514,7 @@ int main()
                         int tpo = xOffset * currentTexture->X;
                         int dataOffset = (tpo * currentTexture->X);
 
-                        engine->frameBufferFillRectSegmented(barMin, barMax, currentTexture, xOffset, brightness);
+                        engine->frameBufferFillRectSegmented(barMin, barMax, currentTexture, xOffset, 1.f);
                         
                         frameTotalBrightness += brightness;
                         frameBrightnessAverage = frameTotalBrightness / i;
@@ -519,7 +581,7 @@ bool CreateDeviceD3D(HWND hWnd)
     g_d3dpp.EnableAutoDepthStencil = TRUE;
     g_d3dpp.AutoDepthStencilFormat = D3DFMT_D16;
     g_d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
-    if (g_pD3D->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd, D3DCREATE_HARDWARE_VERTEXPROCESSING, &g_d3dpp, &g_pd3dDevice) < 0) {
+    if (g_pD3D->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd, D3DCREATE_HARDWARE_VERTEXPROCESSING | D3DCREATE_FPU_PRESERVE, &g_d3dpp, &g_pd3dDevice) < 0) {
         return false;
     }
 
