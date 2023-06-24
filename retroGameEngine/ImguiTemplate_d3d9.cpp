@@ -264,8 +264,8 @@ void renderFloorType2() {
         float floorStepY = rowDistance * (rayDirY1 - rayDirY0) / screenWidth;
 
         // real world coordinates of the leftmost column. This will be updated as we step to the right.
-        float floorX = (posX / 250.f) + rowDistance * rayDirX0;
-        float floorY = (posY / 250.f) + rowDistance * rayDirY0;
+        float floorX = (posX / 251.f) + rowDistance * rayDirX0;
+        float floorY = (posY / 251.f) + rowDistance * rayDirY0;
 
         for (int x = 0; x < engine->getFrameBufferSize().X; x++) {
 
