@@ -60,8 +60,50 @@ float planeY = 0.5f;
 float moveSpeed = 0.1f;
 float rotSpeed = 0.05f;
 
+fVec2 a2v_dir(float angle) {
+    fVec2 dir = { -1.f, 0.f };
+
+    float oldDirX = dir.X;
+    dir.X = dir.X * cos(angle) - dir.Y * sin(angle);
+    dir.Y = oldDirX * sin(angle) + dir.Y * cos(angle);
+
+    return dir;
+}
+
+fVec2 a2v_plane(float angle) {
+    fVec2 plane = { 0.f, 0.5f };
+    
+    float oldPlaneX = plane.X;
+    plane.X = plane.X * cos(angle) - plane.Y * sin(angle);
+    plane.Y = oldPlaneX * sin(angle) + plane.Y * cos(angle);
+
+    return plane;
+}
+
+bool mDown = false;
+fVec2 panStart = mousePos;
+
 //fires 60 times per second
 void timerCallback(HWND unnamedParam1, UINT unnamedParam2, UINT_PTR unnamedParam3, DWORD unnamedParam4) {
+
+    if (GetKeyState(VK_LBUTTON) < 0) {
+   
+        if (!mDown)
+        {
+            mDown = true;
+            panStart = mousePos;
+        }
+
+        mapOffset.X -= (mousePos.X - panStart.X) / mapScale.X;
+        mapOffset.Y -= (mousePos.Y - panStart.Y) / mapScale.Y;
+
+        panStart.X = mousePos.X;
+        panStart.Y = mousePos.Y;
+	}
+    else {
+        mDown = false;
+    }
+    
     if (GetKeyState(VK_LEFT) < 0) {
         engine->plr->angle -= (pi / 2.f) / 30.f;
         if (engine->plr->angle < 0.f) {
@@ -190,10 +232,9 @@ void renderFloorType1(){
     }
 }
 
-
-
 void renderFloorType2() {
 
+    //stores graphic information, can be sampled later
     RGE::RGETexture* floorTexture = engine->textureMap[1];
 
     int screenWidth = engine->getFrameBufferSize().X;
@@ -202,6 +243,16 @@ void renderFloorType2() {
     posX = engine->plr->position.X;
     posY = engine->plr->position.Y;
 
+    float playerAngle = engine->plr->angle;
+    
+    fVec2 angleModifieed = a2v_dir(-playerAngle);
+    dirX = angleModifieed.X;
+    dirY = angleModifieed.Y;
+
+    fVec2 planeModified = a2v_plane(-playerAngle);
+    planeX = planeModified.X;
+    planeY = planeModified.Y;
+    
     for (int y = 0; y < engine->getFrameBufferSize().Y; y++) {
         // rayDir for leftmost ray (x = 0) and rightmost ray (x = w)
         float rayDirX0 = dirX - planeX;
@@ -224,26 +275,24 @@ void renderFloorType2() {
         float floorStepX = rowDistance * (rayDirX1 - rayDirX0) / screenWidth;
         float floorStepY = rowDistance * (rayDirY1 - rayDirY0) / screenWidth;
 
-
         // real world coordinates of the leftmost column. This will be updated as we step to the right.
         float floorX = (posX / 250.f) + rowDistance * rayDirX0;
         float floorY = (posY / 250.f) + rowDistance * rayDirY0;
 
         for (int x = 0; x < engine->getFrameBufferSize().X; x++) {
-            int cellX = (int)(floorX);
-            int cellY = (int)(floorY);
+
 
             // get the texture coordinate from the fractional part
-            int tx = (int)(floorTexture->X * (floorX - cellX)) & (floorTexture->X - 1);
-            int ty = (int)(floorTexture->Y * (floorY - cellY)) & (floorTexture->Y - 1);
+            int tx = (int)(floorTexture->X * (floorX)) & (floorTexture->X - 1);
+            int ty = (int)(floorTexture->Y * (floorY)) & (floorTexture->Y - 1);
 
             floorX += floorStepX;
             floorY += floorStepY;
 
+            //fSample takes an fVec2 between 0 and 1 on each axis and returns the colour at that point
             engine->frameBufferDrawPixel({ (float)x, (float)y }, floorTexture->fSample({ (float)tx / floorTexture->X, (float)ty / floorTexture->Y }));
         }
     }
-
 }
 
 int main()
@@ -365,7 +414,7 @@ int main()
 
             RGE::RGETexture* floor = engine->textureMap[4];
 
-            if (mode == dispMode::render) { renderFloorType2(); }
+            if (mode == dispMode::render) { renderFloorType1(); }
             
             int rayCount = 320;
             for (int i = 0; i < rayCount; i++) {
@@ -416,14 +465,6 @@ int main()
                         int dataOffset = (tpo * currentTexture->X);
 
                         engine->frameBufferFillRectSegmented(barMin, barMax, currentTexture, xOffset, brightness);
-
-						//fVec2 barBottomToScreenEdgeStart = { barMin.X, barMax.Y };
-      //                  fVec2 barBottomToScreenEdgeEnd = { barMax.X, dispHeight };
-						////engine->frameBufferFillRect(barBottomToScreenEdgeStart, barBottomToScreenEdgeEnd, RGE::RGBA(1.f, 0.f, 0.f));
-      //                  
-      //                  RGE::RGETexture* floorTexture = engine->textureMap[4];
-      //                  engine->frameBufferFillRectSegmented(barBottomToScreenEdgeStart, barBottomToScreenEdgeEnd, floorTexture, (float)((i * 2) / 640), brightness);
-
                         
                         frameTotalBrightness += brightness;
                         frameBrightnessAverage = frameTotalBrightness / i;
