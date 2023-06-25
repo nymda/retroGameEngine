@@ -9,6 +9,8 @@
 
 #pragma comment(lib, "Shcore.lib")
 
+const bool HIGHRESMODE = true;
+
 static LPDIRECT3D9              g_pD3D = NULL;
 static LPDIRECT3DDEVICE9        g_pd3dDevice = NULL;
 static D3DPRESENT_PARAMETERS    g_d3dpp = {};
@@ -48,7 +50,7 @@ fVec2 mousePos = { -1, -1 };
 fVec2 getWindowMin() {
     RECT min;
     GetWindowRect(hWnd, &min);
-    return { (float)min.left + 8, (float)min.top + 8 };
+    return { (float)min.left, (float)min.top };
 }
 
 fVec2 getWindowMax() {
@@ -63,11 +65,16 @@ fVec2 GetMousePos(HWND hWnd)
     GetCursorPos(&p);
     ScreenToClient(hWnd, &p);
     fVec2 cursor = { (float)p.x, (float)p.y };
+
+    if (HIGHRESMODE) {
+        cursor.X = cursor.X / 2.f;
+        cursor.Y = cursor.Y / 2.f;
+    }
+    
     return { cursor.X, cursor.Y };
 }
 
-
-fVec2 a2v_dir(float angle) {
+fVec2 a2v_dir(float angle) { 
     fVec2 dir = { -1.f, 0.f };
 
     float oldDirX = dir.X;
@@ -202,7 +209,7 @@ enum mapState {
 };
 
 fVec2 mapSelectedNode = { -1.f, -1.f };
-mapState mapState = mapState::hunting;
+mapState mState = mapState::hunting;
 
 void renderMap() {
     fVec2 screenMin = s2w({ 0.f, 0.f });
@@ -224,7 +231,7 @@ void renderMap() {
         for (float y = startY; y < screenMax.Y; y += stepSize) {
             fVec2 point = { x, y };
 
-            if (abs(distance(mouseWorld, point)) < 25.f) {
+            if (abs(distance(mouseWorld, point)) < 50.f) {
                 nearby = point;
                 hasNearby = true;
 			}
@@ -240,11 +247,11 @@ void renderMap() {
     }
 
     if (GetKeyState(VK_LBUTTON) < 0) {
-        if (mapState == mapState::hunting && hasNearby) {
+        if (mState == mapState::hunting && hasNearby) {
             mapSelectedNode = nearby;
-            mapState = mapState::drawing;
+            mState = mapState::drawing;
 		}
-        else if (mapState == mapState::drawing && hasNearby && !(mapSelectedNode.X == nearby.X && mapSelectedNode.Y == nearby.Y)) {
+        else if (mState == mapState::drawing && hasNearby && !(mapSelectedNode.X == nearby.X && mapSelectedNode.Y == nearby.Y)) {
 
             RGE::wall newWall;
             newWall.line.p1 = mapSelectedNode;
@@ -253,16 +260,16 @@ void renderMap() {
             newWall.textureID = 0;
             engine->map->addStaticWall(newWall);
 
-            mapState = mapState::hunting;
+            mState = mapState::hunting;
         }
     }
 
     if (GetKeyState(VK_ESCAPE) < 0) {
         mapSelectedNode = {-1.f, -1.f };
-        mapState = mapState::hunting;
+        mState = mapState::hunting;
     }
 
-    if (mapState == mapState::drawing) {
+    if (mState == mapState::drawing) {
         fVec2 screenPoint = w2s(mapSelectedNode);
         engine->frameBufferFillRect({ screenPoint.X - 2.5f, screenPoint.Y - 2.5f }, { screenPoint.X + 2.5f,  screenPoint.Y + 2.5f }, RGE::RGBA(0.f, 0.f, 1.f));
     }
@@ -273,6 +280,8 @@ void renderMap() {
         fVec2 p2Int = { w.line.p2.X, w.line.p2.Y };
         engine->frameBufferDrawLine(w2s(p1Int), w2s(p2Int), w.colour);
     }
+
+    engine->frameBufferFillRect({ mousePos.X - 2.5f, mousePos.Y - 2.5f }, { mousePos.X + 2.5f,  mousePos.Y + 2.5f }, RGE::RGBA(1.f, 1.f, 1.f));
 }
 
 void renderFloorType0() {
@@ -373,6 +382,11 @@ int main()
 
     int clientWidth = 640;
     int clientHeight = 480;
+
+    if (HIGHRESMODE) {
+        clientWidth *= 2;
+        clientHeight *= 2;
+    }
 
     RECT windowRect = { 0, 0, clientWidth, clientHeight };
 
