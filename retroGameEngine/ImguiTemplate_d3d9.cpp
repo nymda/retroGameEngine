@@ -605,29 +605,38 @@ int main()
             }
 
             fVec2 testSpritePov = { 0.f, 0.f };
-            fVec2 spriteSize = {25.f, 100.f};
+            fVec2 spriteSize = {25.f, 250.f};
 
             float angleToSprite = fmod(angleToPoint(engine->plr->position, testSpritePov) + 2 * pi, 2 * pi);
 
-            if (engine->plr->angleWithinFov(angleToSprite)) {
-                float percentageCovered = ((angleToSprite - angleMin) / (angleMax - angleMin));
+            float distance1 = fmod(angleMax - angleMin + 2 * pi, 2 * pi);
+            float distance2 = fmod(angleToSprite - angleMin + 2 * pi, 2 * pi);
+
+            if (distance2 <= distance1) {
+                float percentageCovered = distance2 / distance1;
+                percentageCovered = fmin(percentageCovered, 1.f);
+                percentageCovered = fmax(percentageCovered, 0.f);
                 int column = floor(percentageCovered * 320.f);
 
+                float dispHeight = engine->getFrameBufferSize().Y;
+
                 float distanceToSprite = distance(engine->plr->position, testSpritePov);
-                float spriteApparentSize = (engine->plr->cameraFocal * 480.f) / distanceToSprite;
+
+                float spriteApparentSize = (dispHeight * engine->plr->cameraFocal) / distanceToSprite;
+
                 float width = spriteApparentSize * spriteSize.X;
                 float height = spriteApparentSize * spriteSize.Y;
+                float boundryHeight = spriteApparentSize * dispHeight;
 
-                printf_s("SAS: %f\n", spriteApparentSize);
+                float spritePosX = (float)(column * 2);
 
-                float dispCenterY = engine->getFrameBufferSize().Y / 2.f;
-                fVec2 spritePos = { (float)(column * 2), dispCenterY };
-                fVec2 spriteBoundryMin = { spritePos.X - width, spritePos.Y - height };
-                fVec2 spriteBoundryMax = { spritePos.X + width, spritePos.Y + height };
+                fVec2 spriteBoundryMin = { spritePosX - width, (dispHeight / 2) - (boundryHeight / 2.f) };
+                fVec2 spriteBoundryMax = { spritePosX + width, (dispHeight / 2) + (boundryHeight / 2.f) };
 
-                engine->frameBufferFillRect(spriteBoundryMin, spriteBoundryMax, RGE::RGBA(1.f, 0.5f, 0.5f));
+                fVec2 spriteMin = { spritePosX - width, spriteBoundryMax.Y - height };
+                fVec2 spriteMax = { spritePosX + width, spriteBoundryMax.Y};
 
-                printf_s("NC: %i\n", (column));
+                engine->frameBufferFillRect(spriteMin, spriteMax, RGE::RGBA(1.f, 0.5f, 0.5f));
             }
 
             if (mode == dispMode::map) {
@@ -638,7 +647,8 @@ int main()
 			sprintf_s(fps, 32, "FPS: %.2f", lastFps);      
 			engine->fontRendererDrawString({ 5, 5 }, fps, 1);
             
-            //drawing end
+            //drawing end+
+
 
             //this takes up over half of the frame time
             
