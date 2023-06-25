@@ -154,6 +154,9 @@ namespace RGE {
 		float cameraFocal = 0.5f;
 		float cameraLumens = 5.f;
 		float cameraCandella = 20000.f;
+		float cameraFov = (pi / 2.f) / 1.75f;
+
+		bool angleWithinFov(float angle);
 	};
 
 	class RGEMap {

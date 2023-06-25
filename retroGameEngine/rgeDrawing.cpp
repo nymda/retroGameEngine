@@ -219,3 +219,24 @@ void RGE::RGEngine::initializeFontRenderer() {
         }
     }
 }
+
+bool isAngleBetween(float angle, float startAngle, float endAngle) {
+    // Calculate angular distances
+    float distance1 = fmod(endAngle - startAngle + 2 * pi, 2 * pi);
+    float distance2 = fmod(angle - startAngle + 2 * pi, 2 * pi);
+
+    // Compare angular distances
+    return distance2 <= distance1;
+}
+
+
+bool RGE::RGEPlayer::angleWithinFov(float a) {
+    float aNorm = fmod(a, 2 * pi);
+    float angleMin = fmod(this->angle - (this->cameraFov / 2.f), 2 * pi);
+    float angleMax = fmod(this->angle + (this->cameraFov / 2.f), 2 * pi);
+
+    float distance1 = fmod(angleMax - angleMin + 2 * pi, 2 * pi);
+    float distance2 = fmod(aNorm - angleMin + 2 * pi, 2 * pi);
+
+    return distance2 <= distance1;
+}

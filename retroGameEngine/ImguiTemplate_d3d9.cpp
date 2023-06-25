@@ -96,13 +96,21 @@ fVec2 a2v_plane(float angle) {
 
 bool mDown = false;
 fVec2 panStart = mousePos;
+bool mapCameraMovement = false;
 
 //fires 60 times per second
 void timerCallback(HWND unnamedParam1, UINT unnamedParam2, UINT_PTR unnamedParam3, DWORD unnamedParam4) {
 
     if (!(hWnd == GetActiveWindow())) { return; }
 
-    if (GetKeyState(VK_LBUTTON) < 0) {
+    if (GetKeyState(VK_LSHIFT) < 0) {
+        mapCameraMovement = true;
+    }
+    else {
+        mapCameraMovement = false;
+    }
+
+    if (GetKeyState(VK_LBUTTON) < 0 && mapCameraMovement) {
    
         if (!mDown)
         {
@@ -204,19 +212,21 @@ bool testDistanceFast(fVec2 a, fVec2 b, float distance) {
 
 enum mapState {
     hunting = 0,
-    drawing = 1,
+    moving = 1,
+    drawing = 2,
     deleting = 3
 };
 
 fVec2 mapSelectedNode = { -1.f, -1.f };
 mapState mState = mapState::hunting;
+int mapTextureIndex = 0;
+float mapGridDensity = 0.01f;
 
 void renderMap() {
     fVec2 screenMin = s2w({ 0.f, 0.f });
 	fVec2 screenMax = s2w({ 640.f, 480.f });
 
-    float gridDensity = 0.01f;
-    float stepSize = 1.f / gridDensity;
+    float stepSize = 1.f / mapGridDensity;
 
     int startX = std::ceil(screenMin.X / stepSize) * stepSize;
     int startY = std::ceil(screenMin.Y / stepSize) * stepSize;
@@ -225,13 +235,16 @@ void renderMap() {
     fVec2 test = w2s(mouseWorld);
 
     fVec2 nearby = { -1, -1 };
+    float distToNearby = 100000.f;
     bool hasNearby = false;
 
     for (float x = startX; x < screenMax.X; x += stepSize) {
         for (float y = startY; y < screenMax.Y; y += stepSize) {
             fVec2 point = { x, y };
 
-            if (abs(distance(mouseWorld, point)) < 50.f) {
+            float distToPoint = abs(distance(mouseWorld, point));
+            if (distToPoint < distToNearby) {
+                distToNearby = distToPoint;
                 nearby = point;
                 hasNearby = true;
 			}
@@ -241,26 +254,28 @@ void renderMap() {
         }
     }
 
-    if (hasNearby) {
+    if (hasNearby && !mapCameraMovement) {
         fVec2 screenPoint = w2s(nearby);
         engine->frameBufferFillRect({ screenPoint.X - 5.f, screenPoint.Y - 5.f }, { screenPoint.X + 5.f,  screenPoint.Y + 5.f }, RGE::RGBA(1.f, 0.f, 0.f));
     }
 
-    if (GetKeyState(VK_LBUTTON) < 0) {
-        if (mState == mapState::hunting && hasNearby) {
-            mapSelectedNode = nearby;
-            mState = mapState::drawing;
-		}
-        else if (mState == mapState::drawing && hasNearby && !(mapSelectedNode.X == nearby.X && mapSelectedNode.Y == nearby.Y)) {
+    if (!mapCameraMovement) {
+        if (GetKeyState(VK_LBUTTON) < 0) {
+            if (mState == mapState::hunting && hasNearby) {
+                mapSelectedNode = nearby;
+                mState = mapState::drawing;
+            }
+            else if (mState == mapState::drawing && hasNearby && !(mapSelectedNode.X == nearby.X && mapSelectedNode.Y == nearby.Y)) {
 
-            RGE::wall newWall;
-            newWall.line.p1 = mapSelectedNode;
-            newWall.line.p2 = nearby;
-            newWall.colour = RGE::RGBA(1.f, 1.f, 1.f);
-            newWall.textureID = 0;
-            engine->map->addStaticWall(newWall);
+                RGE::wall newWall;
+                newWall.line.p1 = mapSelectedNode;
+                newWall.line.p2 = nearby;
+                newWall.colour = RGE::RGBA(1.f, 1.f, 1.f);
+                newWall.textureID = 0;
+                engine->map->addStaticWall(newWall);
 
-            mState = mapState::hunting;
+                mState = mapState::hunting;
+            }
         }
     }
 
@@ -279,9 +294,27 @@ void renderMap() {
         fVec2 p1Int = { w.line.p1.X, w.line.p1.Y };
         fVec2 p2Int = { w.line.p2.X, w.line.p2.Y };
         engine->frameBufferDrawLine(w2s(p1Int), w2s(p2Int), w.colour);
+
     }
 
+    float angleToSprite = fmod(angleToPoint(engine->plr->position, { 0.f, 0.f }) + 2 * pi, 2 * pi);
+
+    if (engine->plr->angleWithinFov(angleToSprite)) {
+        engine->frameBufferDrawLine(w2s(engine->plr->position), w2s({ engine->plr->position.X + cos(angleToSprite) * 100.f, engine->plr->position.Y + sin(angleToSprite) * 100.f }), RGE::RGBA(1.f, 0.f, 0.f));
+    }
+    else {
+        engine->frameBufferDrawLine(w2s(engine->plr->position), w2s({ engine->plr->position.X + cos(angleToSprite) * 100.f, engine->plr->position.Y + sin(angleToSprite) * 100.f }), RGE::RGBA(1.f, 1.f, 1.f));
+    }
+
+
     engine->frameBufferFillRect({ mousePos.X - 2.5f, mousePos.Y - 2.5f }, { mousePos.X + 2.5f,  mousePos.Y + 2.5f }, RGE::RGBA(1.f, 1.f, 1.f));
+
+    if (mapCameraMovement) {
+        engine->fontRendererDrawString({ 5, 26 }, "PAN/ZOOM", 1);
+    }
+    else {
+        engine->fontRendererDrawString({ 5, 26 }, "DRAW", 1);
+    }
 }
 
 void renderFloorType0() {
@@ -506,16 +539,18 @@ int main()
             frameBrightnessAverage = 0.f;
             overExposure = false;
 
-            RGE::RGETexture* floor = engine->textureMap[4];
-
             if (mode == dispMode::render) { renderFloorType0(); }
             
             int rayCount = 320;
+            float angleStep = engine->plr->cameraFov / rayCount;
+
+            float angleMin = fmod(engine->plr->angle - (engine->plr->cameraFov / 2.f), 2 * pi);
+            float angleMax = fmod(engine->plr->angle + (engine->plr->cameraFov / 2.f), 2 * pi);
+
             for (int i = 0; i < rayCount; i++) {
 
-                float FOV = (pi / 2.f) / 1.75f;
-                float angleStep = FOV / rayCount;
-                float offsetAngle = (engine->plr->angle - (FOV / 2.f)) + (angleStep * (float)i);
+
+                float offsetAngle = (engine->plr->angle - (engine->plr->cameraFov / 2.f)) + (angleStep * (float)i);
 
                 RGE::raycastResponse hinf = {};
 
@@ -567,6 +602,32 @@ int main()
                         overExposure = true;
                     }
                 }
+            }
+
+            fVec2 testSpritePov = { 0.f, 0.f };
+            fVec2 spriteSize = {25.f, 100.f};
+
+            float angleToSprite = fmod(angleToPoint(engine->plr->position, testSpritePov) + 2 * pi, 2 * pi);
+
+            if (engine->plr->angleWithinFov(angleToSprite)) {
+                float percentageCovered = ((angleToSprite - angleMin) / (angleMax - angleMin));
+                int column = floor(percentageCovered * 320.f);
+
+                float distanceToSprite = distance(engine->plr->position, testSpritePov);
+                float spriteApparentSize = (engine->plr->cameraFocal * 480.f) / distanceToSprite;
+                float width = spriteApparentSize * spriteSize.X;
+                float height = spriteApparentSize * spriteSize.Y;
+
+                printf_s("SAS: %f\n", spriteApparentSize);
+
+                float dispCenterY = engine->getFrameBufferSize().Y / 2.f;
+                fVec2 spritePos = { (float)(column * 2), dispCenterY };
+                fVec2 spriteBoundryMin = { spritePos.X - width, spritePos.Y - height };
+                fVec2 spriteBoundryMax = { spritePos.X + width, spritePos.Y + height };
+
+                engine->frameBufferFillRect(spriteBoundryMin, spriteBoundryMax, RGE::RGBA(1.f, 0.5f, 0.5f));
+
+                printf_s("NC: %i\n", (column));
             }
 
             if (mode == dispMode::map) {
@@ -646,20 +707,35 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     {
 
     case WM_MOUSEWHEEL:
-        if (GET_WHEEL_DELTA_WPARAM(wParam) > 0) {
-            fVec2 mousePreZoom = s2w(mousePos);
-            mapScale = { mapScale.X * 1.01f, mapScale.Y * 1.01f };
-            fVec2 mousePostZoom = s2w(mousePos);
-            mapOffset.X += mousePreZoom.X - mousePostZoom.X;
-            mapOffset.Y += mousePreZoom.Y - mousePostZoom.Y;
-        }
-        else {
-            fVec2 mousePreZoom = s2w(mousePos);
-            mapScale = { mapScale.X * 0.99f, mapScale.Y * 0.99f };
-            fVec2 mousePostZoom = s2w(mousePos);
-            mapOffset.X += mousePreZoom.X - mousePostZoom.X;
-            mapOffset.Y += mousePreZoom.Y - mousePostZoom.Y;
-        }
+
+        if (mode == dispMode::map) {
+            if (mapCameraMovement) {
+                if (GET_WHEEL_DELTA_WPARAM(wParam) > 0) {
+                    fVec2 mousePreZoom = s2w(mousePos);
+                    mapScale = { mapScale.X * 1.01f, mapScale.Y * 1.01f };
+                    fVec2 mousePostZoom = s2w(mousePos);
+                    mapOffset.X += mousePreZoom.X - mousePostZoom.X;
+                    mapOffset.Y += mousePreZoom.Y - mousePostZoom.Y;
+                }
+                else {
+                    fVec2 mousePreZoom = s2w(mousePos);
+                    mapScale = { mapScale.X * 0.99f, mapScale.Y * 0.99f };
+                    fVec2 mousePostZoom = s2w(mousePos);
+                    mapOffset.X += mousePreZoom.X - mousePostZoom.X;
+                    mapOffset.Y += mousePreZoom.Y - mousePostZoom.Y;
+                }
+            }
+            else {
+                if (GET_WHEEL_DELTA_WPARAM(wParam) > 0) {
+                    mapTextureIndex++;
+                    if (mapTextureIndex > 128) { mapTextureIndex -= 128; }
+                }
+                else {
+                    mapTextureIndex--;
+                    if (mapTextureIndex < 0) { mapTextureIndex += 128; }
+                }
+            }
+		}
 
         return 0;
 
@@ -667,6 +743,18 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
         if (wParam == 0x4D)
         {
             mode = mode == map ? render : map;
+        }
+
+        if (mode == dispMode::map) {     
+            if (wParam == VK_OEM_PLUS) {
+                if (mapGridDensity < 1.f) { mapGridDensity += 0.01f; }
+
+			}
+            else if (wParam == VK_OEM_MINUS) {
+                if (mapGridDensity > 0.f) {
+                    mapGridDensity -= 0.01f;
+                }
+            }
         }
 
         return 0;
