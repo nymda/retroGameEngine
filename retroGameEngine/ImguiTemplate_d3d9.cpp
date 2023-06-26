@@ -617,43 +617,43 @@ int main()
                 float distance1 = fmod(angleMax - angleMin + 2 * pi, 2 * pi);
                 float distance2 = fmod(angleToSprite - angleMin + 3 * pi, 2 * pi) - pi;
 
-                if (distance2 <= distance1 || true) {
-                    float percentageCovered = distance2 / distance1;
+                float percentageCovered = distance2 / distance1;
+
+                if (percentageCovered < -0.5f || percentageCovered > 1.5f) { continue; }
                 
-                    int column = floor(percentageCovered * 320.f);
+                int column = floor(percentageCovered * 320.f);
 
-                    float dispHeight = engine->getFrameBufferSize().Y;
+                float dispHeight = engine->getFrameBufferSize().Y;
 
-                    float distanceToSprite = distance(engine->plr->position, sprite.position);
-                    if (angleToSprite != 0.f) { distanceToSprite *= cos(engine->plr->angle - angleToSprite); }
-                    
-                    float spriteApparentSize = (dispHeight * engine->plr->cameraFocal) / distanceToSprite;
+                float distanceToSprite = distance(engine->plr->position, sprite.position);
+                if (angleToSprite != 0.f) { distanceToSprite *= cos(engine->plr->angle - angleToSprite); }
 
-                    float width = spriteApparentSize * spriteSize.X;
-                    float height = spriteApparentSize * spriteSize.Y;
-                    float boundryHeight = spriteApparentSize * dispHeight;
+                float spriteApparentSize = (dispHeight * engine->plr->cameraFocal) / distanceToSprite;
 
-                    float spritePosX = (float)(column * 2);
+                float width = spriteApparentSize * spriteSize.X;
+                float height = spriteApparentSize * spriteSize.Y;
+                float boundryHeight = spriteApparentSize * dispHeight;
 
-                    fVec2 spriteBoundryMin = { spritePosX - width, (dispHeight / 2) - (boundryHeight / 2.f) };
-                    fVec2 spriteBoundryMax = { spritePosX + width, (dispHeight / 2) + (boundryHeight / 2.f) };
+                float spritePosX = (float)(column * 2);
 
-                    fVec2 spriteMin = { spritePosX - width, spriteBoundryMax.Y - (height * 2.f) };
-                    fVec2 spriteMax = { spritePosX + width, spriteBoundryMax.Y };
+                fVec2 spriteBoundryMin = { spritePosX - width, (dispHeight / 2) - (boundryHeight / 2.f) };
+                fVec2 spriteBoundryMax = { spritePosX + width, (dispHeight / 2) + (boundryHeight / 2.f) };
 
-                    for (float x = spriteMin.X; x < spriteMax.X; x++) {
-                        float percent = (x - spriteMin.X) / (spriteMax.X - spriteMin.X);
-                        int columnIndex = x / 2;
-                        if (columnIndex >= 0 && columnIndex < 320) {
-                            
-                            RGE::raycastResponse rr = frameResponses[columnIndex];
-                            if (rr.impactCount > 0) {
-                                RGE::raycastImpact imp = rr.impacts.back();
-                                if (imp.distanceFromOrigin < distanceToSprite) { continue; }
-                            }
+                fVec2 spriteMin = { spritePosX - width, spriteBoundryMax.Y - (height * 2.f) };
+                fVec2 spriteMax = { spritePosX + width, spriteBoundryMax.Y };
 
-                            engine->frameBufferFillRectSegmented({ (float)x, (float)spriteMin.Y }, { (float)x + 1.f, (float)spriteMax.Y }, engine->textureMap[5], percent, 1.f);
+                for (float x = spriteMin.X; x < spriteMax.X; x++) {
+                    float percent = (x - spriteMin.X) / (spriteMax.X - spriteMin.X);
+                    int columnIndex = x / 2;
+                    if (columnIndex >= 0 && columnIndex < 320) {
+
+                        RGE::raycastResponse rr = frameResponses[columnIndex];
+                        if (rr.impactCount > 0) {
+                            RGE::raycastImpact imp = rr.impacts.back();
+                            if (imp.distanceFromOrigin < distanceToSprite) { continue; }
                         }
+
+                        engine->frameBufferFillRectSegmented({ (float)x, (float)spriteMin.Y }, { (float)x + 1.f, (float)spriteMax.Y }, engine->textureMap[5], percent, 1.f);
                     }
                 }
             }
