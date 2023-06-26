@@ -126,6 +126,41 @@ namespace RGE {
 		int textureID = 0;
 	};
 
+	struct vert {
+		float angle;
+		float distance;
+	};
+
+
+	struct polygon {
+		bool reflective = false;
+		fVec2 position;
+		float rotation;
+		float scale;
+		int textureID = 0;
+		std::vector<vert> vertices;
+		std::vector<wall> generateFrame() {
+			std::vector<wall> lines;
+			for (int i = 0; i < vertices.size(); i++) {
+				wall l;
+				l.line.p1 = { vertices[i].distance * (float)cos(vertices[i].angle + rotation), vertices[i].distance * (float)sin(vertices[i].angle + rotation) };
+				l.line.p2 = { vertices[(i + 1) % vertices.size()].distance * (float)cos(vertices[(i + 1) % vertices.size()].angle + rotation), vertices[(i + 1) % vertices.size()].distance * (float)sin(vertices[(i + 1) % vertices.size()].angle + rotation) };
+				l.line.p1.X *= scale;
+				l.line.p1.Y *= scale;
+				l.line.p2.X *= scale;
+				l.line.p2.Y *= scale;
+				l.line.p1.X += position.X;
+				l.line.p1.Y += position.Y;
+				l.line.p2.X += position.X;
+				l.line.p2.Y += position.Y;
+				l.colour = RGBA(100, 100, 255);
+				l.textureID = textureID;
+				lines.push_back(l);
+			}
+			return lines;
+		}
+	};
+
 	struct raycastImpact {
 		bool valid;
 		float distanceFromOrigin;
@@ -161,7 +196,7 @@ namespace RGE {
 		float cameraMaxDistance = 5000.f;
 		float cameraFocal = 0.5f;
 		float cameraLumens = 5.f;
-		float cameraCandella = 20000.f;
+		float cameraCandella = 50000.f;
 		float cameraFov = (pi / 2.f) / 1.75f;
 
 		bool angleWithinFov(float angle);
@@ -172,6 +207,7 @@ namespace RGE {
 		std::vector<wall> staticElements = {};
 
 	public:
+		std::vector<polygon> dynamicElements = {};
 		std::vector<RGESprite> sprites = {};
 		
 		std::vector<wall> build() {
@@ -180,12 +216,38 @@ namespace RGE {
 				response.push_back(w);
 			}
 
+			for (polygon& p : dynamicElements) {
+				for (wall& w : p.generateFrame()) {
+					response.push_back(w);
+				}
+			}
+
 			return response;
 		}
 
-		void addStaticWall(wall w) {
+		void addStatic(wall w) {
 			staticElements.push_back(w);
 		}
+
+		void addDynamic(polygon p) {
+			dynamicElements.push_back(p);
+		}
+
+		void generateDynamic(fVec2 position, float rotation, float scale, int sideCount, bool reflective, int textureID) {
+			polygon p;
+			p.reflective = reflective;
+			p.position = position;
+			p.rotation = rotation;
+			p.scale = scale;
+			p.textureID = textureID;
+			p.vertices.clear();
+			for (int i = 0; i < sideCount; i++) {
+				vert v = { 2.f * pi * (float)i / sideCount, 1.f };
+				p.vertices.push_back(v);
+			}
+			dynamicElements.push_back(p);
+		}
+
 	};
 
 	class RGEngine {

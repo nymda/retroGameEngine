@@ -32,9 +32,15 @@ enum dispMode {
     render = 1
 };
 
+enum lightMode {
+    staticL = 0,
+    dynamicL = 1
+};
+
 HWND hWnd = 0;
 
-dispMode mode = dispMode::render;
+lightMode lMode = lightMode::dynamicL;
+dispMode Mmode = dispMode::render;
 fVec2 playerVelocity = { 0, 0 };
 
 float frameTotalBrightness = 0.f;
@@ -143,41 +149,41 @@ void timerCallback(HWND unnamedParam1, UINT unnamedParam2, UINT_PTR unnamedParam
 
     if (GetKeyState(VK_UP) < 0) {
         fVec2 forward = angleToVector(engine->plr->angle);
-        playerVelocity.X += forward.X * 5.f;
-        playerVelocity.Y += forward.Y * 5.f;
+        playerVelocity.X += forward.X * 7.5f;
+        playerVelocity.Y += forward.Y * 7.5f;
     }
 
     if (GetKeyState(VK_DOWN) < 0) {
         fVec2 forward = angleToVector(engine->plr->angle);
-        playerVelocity.X -= forward.X * 5.f;
-        playerVelocity.Y -= forward.Y * 5.f;
+        playerVelocity.X -= forward.X * 7.5f;
+        playerVelocity.Y -= forward.Y * 7.5f;
     }
 
     if (GetKeyState(0x51) < 0) {
         fVec2 left = angleToVector(engine->plr->angle - (pi / 2.f));
-        playerVelocity.X += left.X * 5.f;
-        playerVelocity.Y += left.Y * 5.f;
+        playerVelocity.X += left.X * 7.5f;
+        playerVelocity.Y += left.Y * 7.5f;
     }
 
     if (GetKeyState(0x45) < 0) {
         fVec2 right = angleToVector(engine->plr->angle + (pi / 2.f));
-        playerVelocity.X += right.X * 5.f;
-        playerVelocity.Y += right.Y * 5.f;
+        playerVelocity.X += right.X * 7.5f;
+        playerVelocity.Y += right.Y * 7.5f;
     }
 
     //this mats is broken, but oh well
 
-    if (vectorLength(playerVelocity) > 7.f) {
+    if (vectorLength(playerVelocity) > 15.f) {
         playerVelocity = normalise(playerVelocity);
-        playerVelocity.X *= 7.f;
-        playerVelocity.Y *= 7.f;
+        playerVelocity.X *= 15.f;
+        playerVelocity.Y *= 15.f;
     }
 
     engine->plr->position.X += playerVelocity.X;
     engine->plr->position.Y += playerVelocity.Y;
 
     playerVelocity.X -= playerVelocity.X / 5.f;
-    playerVelocity.Y -= playerVelocity.Y / 5.f;;
+    playerVelocity.Y -= playerVelocity.Y / 5.f;
 
     if (overExposure && engine->plr->cameraLumens > 0.5f) {
         engine->plr->cameraLumens -= 0.075f;
@@ -271,7 +277,7 @@ void renderMap() {
                 newWall.line.p2 = nearby;
                 newWall.colour = RGE::RGBA(1.f, 1.f, 1.f);
                 newWall.textureID = 0;
-                engine->map->addStaticWall(newWall);
+                engine->map->addStatic(newWall);
 
                 mState = mapState::hunting;
             }
@@ -317,24 +323,23 @@ void renderFloorType0() {
 }
 
 void renderFloorType1(){
-    int floorSegments = 50;
+    int floorSegments = 25;
     float floorSegmentHeight = (640 / 2.f) / floorSegments;
 
     float floorDistanceMin = 5.f;
     float floorDistanceMax = 2000.f;
+    int floorBrightnessMax = 255 / 3;
+    int floorBrightnessMin = 25;
+    int floorBrightnessStep = (floorBrightnessMax - floorBrightnessMin) / floorSegments;
 
     for (int i = 0; i < floorSegments; i++) {
         fVec2 floorMin = { 0, (480 / 2) + (floorSegmentHeight * (float)i) };
         fVec2 floorMax = { 640, (480 / 2) + (floorSegmentHeight * (float)(i + 1)) };
 
-        float floorDistance = floorDistanceMax - (floorDistanceMin + ((floorDistanceMax - floorDistanceMin) / floorSegments) * i);
-        float floorBrightness = (engine->plr->cameraLumens / (floorDistance * floorDistance)) * engine->plr->cameraCandella;
-        floorBrightness = fmin(floorBrightness, 1.5f);
-        floorBrightness = fmax(floorBrightness, 0.1f);
+        RGE::RGBA floorColour = RGE::RGBA((floorBrightnessStep * (i)), (floorBrightnessStep * (i)), (floorBrightnessStep * (i)));
 
-        RGE::RGBA segmentColour = RGE::RGBA(floorBrightness, floorBrightness, floorBrightness);
-        engine->frameBufferFillRect(floorMin, floorMax, segmentColour);
-        engine->frameBufferFillRect({ floorMin.X, (480 / 2) - (floorSegmentHeight * (float)(i + 1)) }, { floorMax.X, (480 / 2) - (floorSegmentHeight * (float)(i)) }, segmentColour);
+        engine->frameBufferFillRect(floorMin, floorMax, floorColour);
+        engine->frameBufferFillRect({ floorMin.X, (480 / 2) - (floorSegmentHeight * (float)(i + 1)) }, { floorMax.X, (480 / 2) - (floorSegmentHeight * (float)(i)) }, floorColour);
     }
 }
 
@@ -435,58 +440,60 @@ int main()
     mapOffset = { -640 / 2, -480 / 2 };
     
     RGE::wall T;
-    T.line = { {-500, -500}, {500, -500} };
+    T.line = { {-1000, -1000}, {1000, -1000} };
     T.colour = RGE::RGBA(100, 100, 100, 255);
     T.textureID = 1;
 
     RGE::wall B;
-    B.line = { {-500, 500}, {500, 500} };
+    B.line = { {-1000, 1000}, {1000, 1000} };
     B.colour = RGE::RGBA(100, 100, 100, 255);
     B.textureID = 1;
 
     RGE::wall L;
-    L.line = { {-500, -500}, {-500, 500} };
+    L.line = { {-1000, -1000}, {-1000, 1000} };
     L.colour = RGE::RGBA(100, 100, 100, 255);
     L.textureID = 1;
 
     RGE::wall R;
-    R.line = { {500, -500}, {500, 500} };
+    R.line = { {1000, -1000}, {1000, 1000} };
     R.colour = RGE::RGBA(100, 100, 100, 255);
     R.textureID = 1;
 
-    engine->map->addStaticWall(T);
-    engine->map->addStaticWall(B);
-    engine->map->addStaticWall(L);
-    engine->map->addStaticWall(R);
+    engine->map->addStatic(T);
+    engine->map->addStatic(B);
+    engine->map->addStatic(L);
+    engine->map->addStatic(R);
     
-    RGE::wall gT;
-    gT.line = { {-200, -400}, {-400, -400} };
-    gT.colour = RGE::RGBA(200, 100, 0, 255);
-    gT.textureID = 3;
+    //RGE::wall gT;
+    //gT.line = { {-200, -400}, {-400, -400} };
+    //gT.colour = RGE::RGBA(200, 100, 0, 255);
+    //gT.textureID = 3;
 
-    RGE::wall gB;
-    gB.line = { {-400, -200}, {-200, -200} };
-    gB.colour = RGE::RGBA(200, 100, 0, 255);
-    gB.textureID = 3;
+    //RGE::wall gB;
+    //gB.line = { {-400, -200}, {-200, -200} };
+    //gB.colour = RGE::RGBA(200, 100, 0, 255);
+    //gB.textureID = 3;
 
-    RGE::wall gL;
-    gL.line = { {-400, -400}, {-400, -200} };
-    gL.colour = RGE::RGBA(200, 100, 0, 255);
-    gL.textureID = 4;
+    //RGE::wall gL;
+    //gL.line = { {-400, -400}, {-400, -200} };
+    //gL.colour = RGE::RGBA(200, 100, 0, 255);
+    //gL.textureID = 4;
 
-    RGE::wall gR;
-    gR.line = { {-200, -200}, {-200, -400} };
-    gR.colour = RGE::RGBA(200, 100, 0, 255);
-    gR.textureID = 4;
+    //RGE::wall gR;
+    //gR.line = { {-200, -200}, {-200, -400} };
+    //gR.colour = RGE::RGBA(200, 100, 0, 255);
+    //gR.textureID = 4;
 
-    engine->map->addStaticWall(gT);
-    engine->map->addStaticWall(gB);
-    engine->map->addStaticWall(gL);
-    engine->map->addStaticWall(gR);
-    
+    //engine->map->addStatic(gT);
+    //engine->map->addStatic(gB);
+    //engine->map->addStatic(gL);
+    //engine->map->addStatic(gR); 
+
+    engine->map->generateDynamic({ -300.f, -300.f }, pi * 0.25, 150.f, 4, false, 3);
+
     RGE::RGESprite gogibfren = {};
 	gogibfren.textureID = 5;
-	gogibfren.position = { 750.f, 0.f };
+	gogibfren.position = { -300.f, 300.f };
     gogibfren.scale = 5.f;
 	engine->map->sprites.push_back(gogibfren);
     
@@ -536,12 +543,15 @@ int main()
 
             engine->fillFrameBuffer(RGE::RGBA(0, 0, 0));
 
+            engine->map->dynamicElements[0].rotation += 0.01f;
+
             frameTotalBrightness = 0.f;
             frameBrightnessAverage = 0.f;
             overExposure = false;
 
-            if (mode == dispMode::render) { renderFloorType0(); }
-            
+            if (Mmode == dispMode::render && lMode == lightMode::dynamicL) { renderFloorType1(); }
+            else if (Mmode == dispMode::render && lMode == lightMode::staticL) { renderFloorType0(); }
+
             int rayCount = 320;
             float angleStep = engine->plr->cameraFov / rayCount;
 
@@ -552,11 +562,11 @@ int main()
                 float offsetAngle = (engine->plr->angle - (engine->plr->cameraFov / 2.f)) + (angleStep * (float)i);
 
                 if (engine->castRay(engine->plr->position, offsetAngle, engine->plr->angle, engine->plr->cameraMaxDistance, &hinf)) {
-                    if (mode == dispMode::map) { engine->frameBufferDrawLine(w2s(engine->plr->position), w2s(hinf.impacts.back().position), RGE::RGBA(100, 100, 100)); }
+                    if (Mmode == dispMode::map) { engine->frameBufferDrawLine(w2s(engine->plr->position), w2s(hinf.impacts.back().position), RGE::RGBA(100, 100, 100)); }
                 }
                 else {
                     fVec2 target = { engine->plr->position.X + (cos(offsetAngle) * engine->plr->cameraMaxDistance), engine->plr->position.Y + (sin(offsetAngle) * engine->plr->cameraMaxDistance) };
-                    if (mode == dispMode::map) { engine->frameBufferDrawLine(w2s(engine->plr->position), w2s(target), RGE::RGBA(100, 100, 100)); }
+                    if (Mmode == dispMode::map) { engine->frameBufferDrawLine(w2s(engine->plr->position), w2s(target), RGE::RGBA(100, 100, 100)); }
                 }
                 
                 hinf.index = i;
@@ -564,7 +574,7 @@ int main()
             }
             
             for (RGE::raycastResponse& rr : frameResponses) {
-                if (rr.impactCount == 0 || mode == dispMode::map) { continue; }
+                if (rr.impactCount == 0 || Mmode == dispMode::map) { continue; }
 
                 RGE::raycastImpact imp = rr.impacts.back();
 
@@ -575,9 +585,12 @@ int main()
                 fVec2 barMin = { (2 * rr.index), (dispHeight / 2) - (height / 2.f) };
                 fVec2 barMax = { (2 * rr.index) + 1, (dispHeight / 2) + (height / 2.f) };
 
-                float brightness = (engine->plr->cameraLumens / (imp.distanceFromOrigin * imp.distanceFromOrigin)) * engine->plr->cameraCandella;
-                brightness = fmin(brightness, 1.5f);
-                brightness = fmax(brightness, 0.1f);
+                float brightness = 1.f;
+                if (lMode == lightMode::dynamicL) {
+                    brightness = (engine->plr->cameraLumens / (imp.distanceFromOrigin * imp.distanceFromOrigin)) * engine->plr->cameraCandella;
+                    brightness = fmin(brightness, 1.5f);
+                    brightness = fmax(brightness, 0.1f);
+                }
 
                 RGE::RGBA colour = RGE::RGBA((int)(brightness * (float)imp.surfaceColour.R), (int)(brightness * (float)imp.surfaceColour.G), (int)(brightness * (float)imp.surfaceColour.B));
 
@@ -595,7 +608,7 @@ int main()
                 int tpo = xOffset * currentTexture->X;
                 int dataOffset = (tpo * currentTexture->X);
 
-                engine->frameBufferFillRectSegmented(barMin, barMax, currentTexture, xOffset, 1.f);
+                engine->frameBufferFillRectSegmented(barMin, barMax, currentTexture, xOffset, brightness);
 
                 frameTotalBrightness += brightness;
                 frameBrightnessAverage = frameTotalBrightness / rr.index;
@@ -605,7 +618,7 @@ int main()
             }
 
             for (RGE::RGESprite& sprite : engine->map->sprites) {
-                if (mode == dispMode::map) { continue; }
+                if (Mmode == dispMode::map) { continue; }
                 
                 fVec2 spriteSize = { (float)engine->textureMap[sprite.textureID]->X * sprite.scale,  (float)engine->textureMap[sprite.textureID]->Y * sprite.scale };
 
@@ -642,6 +655,13 @@ int main()
                 fVec2 spriteMin = { spritePosX - width, spriteBoundryMax.Y - (height * 2.f) };
                 fVec2 spriteMax = { spritePosX + width, spriteBoundryMax.Y };
 
+                float brightness = 1.f;
+                if (lMode == lightMode::dynamicL) {
+                    brightness = (engine->plr->cameraLumens / (distanceToSprite * distanceToSprite))* engine->plr->cameraCandella;
+                    brightness = fmin(brightness, 1.5f);
+                    brightness = fmax(brightness, 0.1f);
+                }
+
                 for (float x = spriteMin.X; x < spriteMax.X; x++) {
                     float percent = (x - spriteMin.X) / (spriteMax.X - spriteMin.X);
                     int columnIndex = x / 2;
@@ -653,12 +673,12 @@ int main()
                             if (imp.distanceFromOrigin < distanceToSprite) { continue; }
                         }
 
-                        engine->frameBufferFillRectSegmented({ (float)x, (float)spriteMin.Y }, { (float)x + 1.f, (float)spriteMax.Y }, engine->textureMap[5], percent, 1.f);
+                        engine->frameBufferFillRectSegmented({ (float)x, (float)spriteMin.Y }, { (float)x + 1.f, (float)spriteMax.Y }, engine->textureMap[5], percent, brightness);
                     }
                 }
             }
             
-            if (mode == dispMode::map) {
+            if (Mmode == dispMode::map) {
                 renderMap();
             }
 
@@ -738,7 +758,7 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
     case WM_MOUSEWHEEL:
 
-        if (mode == dispMode::map) {
+        if (Mmode == dispMode::map) {
             if (mapCameraMovement) {
                 if (GET_WHEEL_DELTA_WPARAM(wParam) > 0) {
                     fVec2 mousePreZoom = s2w(mousePos);
@@ -772,10 +792,15 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     case WM_KEYDOWN:
         if (wParam == 0x4D)
         {
-            mode = mode == map ? render : map;
+            Mmode = Mmode == map ? render : map;
         }
 
-        if (mode == dispMode::map) {     
+        if (wParam == 0x4C) {
+			lMode = lMode == lightMode::dynamicL ? lightMode::staticL : lightMode::dynamicL;
+		}
+
+
+        if (Mmode == dispMode::map) {
             if (wParam == VK_OEM_PLUS) {
                 if (mapGridDensity < 1.f) { mapGridDensity += 0.01f; }
 
