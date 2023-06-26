@@ -141,10 +141,18 @@ namespace RGE {
 	};
 
 	struct raycastResponse {
+		int index = 0;
 		int impactCount = 0;
 		std::vector<raycastImpact> impacts;
 	};
 
+	class RGESprite {
+	public:
+		float scale;
+		int textureID;
+		fVec2 position = { 0.f, 0.f };
+	};
+	
 	class RGEPlayer {
 	public:
 		float angle = pi;
@@ -164,7 +172,8 @@ namespace RGE {
 		std::vector<wall> staticElements = {};
 
 	public:
-
+		std::vector<RGESprite> sprites = {};
+		
 		std::vector<wall> build() {
 			std::vector<wall> response = {};
 			for (wall& w : staticElements) {

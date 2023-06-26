@@ -9,7 +9,7 @@
 
 #pragma comment(lib, "Shcore.lib")
 
-const bool HIGHRESMODE = true;
+const bool HIGHRESMODE = false;
 
 static LPDIRECT3D9              g_pD3D = NULL;
 static LPDIRECT3DDEVICE9        g_pd3dDevice = NULL;
@@ -45,7 +45,6 @@ fVec2 mapOffset = { 0, 0 };
 fVec2 mapScale = { 1, 1 };
 fVec2 mapStartPan = { 0, 0 };
 fVec2 mousePos = { -1, -1 };
-
 
 fVec2 getWindowMin() {
     RECT min;
@@ -426,8 +425,8 @@ int main()
     ::AdjustWindowRect(&windowRect, WS_OVERLAPPEDWINDOW, FALSE);
 
     hWnd = ::CreateWindow(wc.lpszClassName, _T("RGE"), WS_OVERLAPPEDWINDOW & ~WS_SIZEBOX & ~WS_MAXIMIZEBOX, 100, 100, windowRect.right - windowRect.left, windowRect.bottom - windowRect.top, NULL, NULL, wc.hInstance, NULL);
-
-    SetProcessDPIAware();
+    
+    //SetProcessDPIAware();
 
     engine->allocFrameBuffer({ 640, 480 });
     frameBuffer = engine->getFrameBuffer();
@@ -436,7 +435,8 @@ int main()
     engine->initTextureFromDisk("concrete.png", RGE::textureMode::tile, 2);
     engine->initTextureFromDisk("gobid.png", RGE::textureMode::stretch, 3);
     engine->initTextureFromDisk("katta.png", RGE::textureMode::stretch, 4);
-
+    engine->initTextureFromDisk("gojidgun.png", RGE::textureMode::stretch, 5);
+    
     mapOffset = { -640 / 2, -480 / 2 };
     
     RGE::wall T;
@@ -488,6 +488,12 @@ int main()
     engine->map->addStaticWall(gB);
     engine->map->addStaticWall(gL);
     engine->map->addStaticWall(gR);
+    
+    RGE::RGESprite gogibfren = {};
+	gogibfren.textureID = 5;
+	gogibfren.position = { 750.f, 0.f };
+    gogibfren.scale = 5.f;
+	engine->map->sprites.push_back(gogibfren);
     
     // Initialize Direct3D
     if (!CreateDeviceD3D(hWnd))
@@ -544,15 +550,11 @@ int main()
             int rayCount = 320;
             float angleStep = engine->plr->cameraFov / rayCount;
 
-            float angleMin = fmod(engine->plr->angle - (engine->plr->cameraFov / 2.f), 2 * pi);
-            float angleMax = fmod(engine->plr->angle + (engine->plr->cameraFov / 2.f), 2 * pi);
+            std::vector<RGE::raycastResponse> frameResponses = {};
 
             for (int i = 0; i < rayCount; i++) {
-
-
-                float offsetAngle = (engine->plr->angle - (engine->plr->cameraFov / 2.f)) + (angleStep * (float)i);
-
                 RGE::raycastResponse hinf = {};
+                float offsetAngle = (engine->plr->angle - (engine->plr->cameraFov / 2.f)) + (angleStep * (float)i);
 
                 if (engine->castRay(engine->plr->position, offsetAngle, engine->plr->angle, engine->plr->cameraMaxDistance, &hinf)) {
                     if (mode == dispMode::map) { engine->frameBufferDrawLine(w2s(engine->plr->position), w2s(hinf.impacts.back().position), RGE::RGBA(100, 100, 100)); }
@@ -561,84 +563,103 @@ int main()
                     fVec2 target = { engine->plr->position.X + (cos(offsetAngle) * engine->plr->cameraMaxDistance), engine->plr->position.Y + (sin(offsetAngle) * engine->plr->cameraMaxDistance) };
                     if (mode == dispMode::map) { engine->frameBufferDrawLine(w2s(engine->plr->position), w2s(target), RGE::RGBA(100, 100, 100)); }
                 }
+                
+                hinf.index = i;
+                frameResponses.push_back(hinf);
+            }
+            
+            for (RGE::raycastResponse& rr : frameResponses) {
+                if (rr.impactCount == 0) { continue; }
 
-                if (mode == dispMode::render) {
-                    if (hinf.impactCount == 0) { continue; }
+                RGE::raycastImpact imp = rr.impacts.back();
 
-                    RGE::raycastImpact imp = hinf.impacts.back();
+                float dispHeight = engine->getFrameBufferSize().Y;
+                float apparentSize = dispHeight * engine->plr->cameraFocal / imp.distanceFromOrigin;
+                float height = apparentSize * dispHeight;
 
-                    float dispHeight = engine->getFrameBufferSize().Y;
-                    float apparentSize = dispHeight * engine->plr->cameraFocal / imp.distanceFromOrigin;
-                    float height = apparentSize * dispHeight;
+                fVec2 barMin = { (2 * rr.index), (dispHeight / 2) - (height / 2.f) };
+                fVec2 barMax = { (2 * rr.index) + 1, (dispHeight / 2) + (height / 2.f) };
 
-                    fVec2 barMin = { (2 * i), (dispHeight / 2) - (height / 2.f) };
-                    fVec2 barMax = { (2 * i) + 1, (dispHeight / 2) + (height / 2.f) };
+                float brightness = (engine->plr->cameraLumens / (imp.distanceFromOrigin * imp.distanceFromOrigin)) * engine->plr->cameraCandella;
+                brightness = fmin(brightness, 1.5f);
+                brightness = fmax(brightness, 0.1f);
 
-                    float brightness = (engine->plr->cameraLumens / (imp.distanceFromOrigin * imp.distanceFromOrigin)) * engine->plr->cameraCandella;
-                    brightness = fmin(brightness, 1.5f);
-                    brightness = fmax(brightness, 0.1f);
+                RGE::RGBA colour = RGE::RGBA((int)(brightness * (float)imp.surfaceColour.R), (int)(brightness * (float)imp.surfaceColour.G), (int)(brightness * (float)imp.surfaceColour.B));
 
-                    RGE::RGBA colour = RGE::RGBA((int)(brightness * (float)imp.surfaceColour.R), (int)(brightness * (float)imp.surfaceColour.G), (int)(brightness * (float)imp.surfaceColour.B));
+                RGE::RGETexture* currentTexture = engine->textureMap[imp.surface.textureID];
 
-                    RGE::RGETexture* currentTexture = engine->textureMap[imp.surface.textureID];
+                float xOffset = 0;
+                float unused = 0;
+                if (currentTexture->mode == RGE::textureMode::tile) {
+                    xOffset = std::modf(imp.trueDistanceFromLineOrigin / (float)(currentTexture->X * 4.f), &unused);
+                }
+                else {
+                    xOffset = imp.distanceFromLineOrigin;
+                }
 
-                    float xOffset = 0;
-                    float unused = 0;
-                    if (currentTexture->mode == RGE::textureMode::tile) {
-                        xOffset = std::modf(imp.trueDistanceFromLineOrigin / (float)(currentTexture->X * 4.f), &unused);
-                    }
-                    else {
-                        xOffset = imp.distanceFromLineOrigin;
-                    }
+                int tpo = xOffset * currentTexture->X;
+                int dataOffset = (tpo * currentTexture->X);
 
-                    int tpo = xOffset * currentTexture->X;
-                    int dataOffset = (tpo * currentTexture->X);
+                engine->frameBufferFillRectSegmented(barMin, barMax, currentTexture, xOffset, 1.f);
 
-                    engine->frameBufferFillRectSegmented(barMin, barMax, currentTexture, xOffset, 1.f);
-
-                    frameTotalBrightness += brightness;
-                    frameBrightnessAverage = frameTotalBrightness / i;
-                    if (brightness > 1.f) {
-                        overExposure = true;
-                    }
+                frameTotalBrightness += brightness;
+                frameBrightnessAverage = frameTotalBrightness / rr.index;
+                if (brightness > 1.f) {
+                    overExposure = true;
                 }
             }
 
-            fVec2 testSpritePov = { 0.f, 0.f };
-            fVec2 spriteSize = {25.f, 250.f};
+            for (RGE::RGESprite& sprite : engine->map->sprites) {
+                fVec2 spriteSize = { (float)engine->textureMap[sprite.textureID]->X * sprite.scale,  (float)engine->textureMap[sprite.textureID]->Y * sprite.scale };
 
-            float angleToSprite = fmod(angleToPoint(engine->plr->position, testSpritePov) + 2 * pi, 2 * pi);
+                float angleToSprite = fmod(angleToPoint(engine->plr->position, sprite.position) + 2 * pi, 2 * pi);
 
-            float distance1 = fmod(angleMax - angleMin + 2 * pi, 2 * pi);
-            float distance2 = fmod(angleToSprite - angleMin + 2 * pi, 2 * pi);
+                float angleMin = fmod(engine->plr->angle - (engine->plr->cameraFov / 2.f), 2 * pi);
+                float angleMax = fmod(engine->plr->angle + (engine->plr->cameraFov / 2.f), 2 * pi);
 
-            if (distance2 <= distance1) {
-                float percentageCovered = distance2 / distance1;
-                percentageCovered = fmin(percentageCovered, 1.f);
-                percentageCovered = fmax(percentageCovered, 0.f);
-                int column = floor(percentageCovered * 320.f);
+                float distance1 = fmod(angleMax - angleMin + 2 * pi, 2 * pi);
+                float distance2 = fmod(angleToSprite - angleMin + 3 * pi, 2 * pi) - pi;
 
-                float dispHeight = engine->getFrameBufferSize().Y;
+                if (distance2 <= distance1 || true) {
+                    float percentageCovered = distance2 / distance1;
+                
+                    int column = floor(percentageCovered * 320.f);
 
-                float distanceToSprite = distance(engine->plr->position, testSpritePov);
+                    float dispHeight = engine->getFrameBufferSize().Y;
 
-                float spriteApparentSize = (dispHeight * engine->plr->cameraFocal) / distanceToSprite;
+                    float distanceToSprite = distance(engine->plr->position, sprite.position);
+                    if (angleToSprite != 0.f) { distanceToSprite *= cos(engine->plr->angle - angleToSprite); }
+                    
+                    float spriteApparentSize = (dispHeight * engine->plr->cameraFocal) / distanceToSprite;
 
-                float width = spriteApparentSize * spriteSize.X;
-                float height = spriteApparentSize * spriteSize.Y;
-                float boundryHeight = spriteApparentSize * dispHeight;
+                    float width = spriteApparentSize * spriteSize.X;
+                    float height = spriteApparentSize * spriteSize.Y;
+                    float boundryHeight = spriteApparentSize * dispHeight;
 
-                float spritePosX = (float)(column * 2);
+                    float spritePosX = (float)(column * 2);
 
-                fVec2 spriteBoundryMin = { spritePosX - width, (dispHeight / 2) - (boundryHeight / 2.f) };
-                fVec2 spriteBoundryMax = { spritePosX + width, (dispHeight / 2) + (boundryHeight / 2.f) };
+                    fVec2 spriteBoundryMin = { spritePosX - width, (dispHeight / 2) - (boundryHeight / 2.f) };
+                    fVec2 spriteBoundryMax = { spritePosX + width, (dispHeight / 2) + (boundryHeight / 2.f) };
 
-                fVec2 spriteMin = { spritePosX - width, spriteBoundryMax.Y - height };
-                fVec2 spriteMax = { spritePosX + width, spriteBoundryMax.Y};
+                    fVec2 spriteMin = { spritePosX - width, spriteBoundryMax.Y - (height * 2.f) };
+                    fVec2 spriteMax = { spritePosX + width, spriteBoundryMax.Y };
 
-                engine->frameBufferFillRect(spriteMin, spriteMax, RGE::RGBA(1.f, 0.5f, 0.5f));
+                    for (float x = spriteMin.X; x < spriteMax.X; x++) {
+                        float percent = (x - spriteMin.X) / (spriteMax.X - spriteMin.X);
+                        int columnIndex = x / 2;
+                        if (columnIndex >= 0 && columnIndex < 320) {
+                            RGE::raycastResponse rr = frameResponses[columnIndex];
+                            if (rr.impactCount > 0) {
+                                RGE::raycastImpact imp = rr.impacts.back();
+                                if (imp.distanceFromOrigin < distanceToSprite) { continue; }
+                            }
+
+                            engine->frameBufferFillRectSegmented({ (float)x, (float)spriteMin.Y }, { (float)x + 1.f, (float)spriteMax.Y }, engine->textureMap[5], percent, 1.f);
+                        }
+                    }
+                }
             }
-
+            
             if (mode == dispMode::map) {
                 renderMap();
             }
@@ -647,7 +668,7 @@ int main()
 			sprintf_s(fps, 32, "FPS: %.2f", lastFps);      
 			engine->fontRendererDrawString({ 5, 5 }, fps, 1);
             
-            //drawing end+
+            //drawing end
 
 
             //this takes up over half of the frame time
@@ -715,6 +736,7 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     switch (msg)
     {
+
 
     case WM_MOUSEWHEEL:
 

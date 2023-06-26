@@ -59,14 +59,16 @@ void RGE::RGEngine::initTextureFromDisk(const char* path, textureMode mode, int 
 	sprintf_s(tmp, "%s%s", execPathShort, path);
 
 	int tChannels = 0;
-	RGB* tmpBfr = (RGB*)stbi_load(tmp, &nt->X, &nt->Y, &tChannels, 3);
-	if (!tmpBfr) { return; }
+	RGBA* tmpBfr = (RGBA*)stbi_load(tmp, &nt->X, &nt->Y, &tChannels, STBI_rgb_alpha);
+	if (!tmpBfr) { 
+		return; 
+	}
 	
 	int pixelCount = nt->X * nt->Y;
 
 	nt->data = new RGBA[pixelCount];
 	for (int i = 0; i < pixelCount; i++) {
-		nt->data[i] = RGBA(tmpBfr[i].R, tmpBfr[i].G, tmpBfr[i].B);
+		nt->data[i] = RGBA(tmpBfr[i].B, tmpBfr[i].G, tmpBfr[i].R, tmpBfr[i].A); // requires reformatting from RGBA to BGRA
 	}
 	delete[] tmpBfr;
 
@@ -107,6 +109,8 @@ void RGE::RGEngine::frameBufferFillRectSegmented(fVec2 p1, fVec2 p2, RGETexture*
 		float newG = (float)((float)colour.G / 256.f) * brightnessModifier;
 		float newB = (float)((float)colour.B / 256.f) * brightnessModifier;
 
-		frameBufferFillRect(segmentMin, segmentMax, RGBA(newR, newG, newB));
+		if (colour.A > 0) {
+			frameBufferFillRect(segmentMin, segmentMax, RGBA(newR, newG, newB));
+		}
 	}
 }
