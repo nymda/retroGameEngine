@@ -296,15 +296,10 @@ void renderMap() {
 
     }
 
-    float angleToSprite = fmod(angleToPoint(engine->plr->position, { 0.f, 0.f }) + 2 * pi, 2 * pi);
-
-    if (engine->plr->angleWithinFov(angleToSprite)) {
-        engine->frameBufferDrawLine(w2s(engine->plr->position), w2s({ engine->plr->position.X + cos(angleToSprite) * 100.f, engine->plr->position.Y + sin(angleToSprite) * 100.f }), RGE::RGBA(1.f, 0.f, 0.f));
+    for (RGE::RGESprite& s : engine->map->sprites) {
+        fVec2 spritePos = w2s(s.position);
+        engine->frameBufferFillRect({ spritePos.X - 2.5f, spritePos.Y - 2.5f }, { spritePos.X + 2.5f,  spritePos.Y + 2.5f }, RGE::RGBA(255, 153, 0));
     }
-    else {
-        engine->frameBufferDrawLine(w2s(engine->plr->position), w2s({ engine->plr->position.X + cos(angleToSprite) * 100.f, engine->plr->position.Y + sin(angleToSprite) * 100.f }), RGE::RGBA(1.f, 1.f, 1.f));
-    }
-
 
     engine->frameBufferFillRect({ mousePos.X - 2.5f, mousePos.Y - 2.5f }, { mousePos.X + 2.5f,  mousePos.Y + 2.5f }, RGE::RGBA(1.f, 1.f, 1.f));
 
@@ -569,7 +564,7 @@ int main()
             }
             
             for (RGE::raycastResponse& rr : frameResponses) {
-                if (rr.impactCount == 0) { continue; }
+                if (rr.impactCount == 0 || mode == dispMode::map) { continue; }
 
                 RGE::raycastImpact imp = rr.impacts.back();
 
@@ -610,6 +605,8 @@ int main()
             }
 
             for (RGE::RGESprite& sprite : engine->map->sprites) {
+                if (mode == dispMode::map) { continue; }
+                
                 fVec2 spriteSize = { (float)engine->textureMap[sprite.textureID]->X * sprite.scale,  (float)engine->textureMap[sprite.textureID]->Y * sprite.scale };
 
                 float angleToSprite = fmod(angleToPoint(engine->plr->position, sprite.position) + 2 * pi, 2 * pi);
@@ -648,6 +645,7 @@ int main()
                         float percent = (x - spriteMin.X) / (spriteMax.X - spriteMin.X);
                         int columnIndex = x / 2;
                         if (columnIndex >= 0 && columnIndex < 320) {
+                            
                             RGE::raycastResponse rr = frameResponses[columnIndex];
                             if (rr.impactCount > 0) {
                                 RGE::raycastImpact imp = rr.impacts.back();
