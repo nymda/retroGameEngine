@@ -333,7 +333,7 @@ namespace RGE {
 		int fontRendererDrawSpacer(fVec2 position, int width, int scale);
 		
 		//raycast functions
-		bool castRay(fVec2 origin, float angle, float correctionAngle, float maxLength, raycastResponse* responseData);
+		bool castRay(fVec2 origin, float angle, float correctionAngle, float maxDistance, bool refreshWorld, raycastResponse* responseData);
 
 		//texture functions
 		void initDefaultTexture();

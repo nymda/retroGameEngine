@@ -554,6 +554,7 @@ int main()
 
             int rayCount = 320;
             float angleStep = engine->plr->cameraFov / rayCount;
+            int colWidth = (engine->getFrameBufferSize().X / rayCount);
 
             std::vector<RGE::raycastResponse> frameResponses = {};
 
@@ -561,12 +562,11 @@ int main()
                 RGE::raycastResponse hinf = {};
                 float offsetAngle = (engine->plr->angle - (engine->plr->cameraFov / 2.f)) + (angleStep * (float)i);
 
-                if (engine->castRay(engine->plr->position, offsetAngle, engine->plr->angle, engine->plr->cameraMaxDistance, &hinf)) {
+                if (engine->castRay(engine->plr->position, offsetAngle, engine->plr->angle, engine->plr->cameraMaxDistance, (i == 0), &hinf)) {
                     if (Mmode == dispMode::map) { engine->frameBufferDrawLine(w2s(engine->plr->position), w2s(hinf.impacts.back().position), RGE::RGBA(100, 100, 100)); }
                 }
                 else {
-                    fVec2 target = { engine->plr->position.X + (cos(offsetAngle) * engine->plr->cameraMaxDistance), engine->plr->position.Y + (sin(offsetAngle) * engine->plr->cameraMaxDistance) };
-                    if (Mmode == dispMode::map) { engine->frameBufferDrawLine(w2s(engine->plr->position), w2s(target), RGE::RGBA(100, 100, 100)); }
+                    if (Mmode == dispMode::map) { engine->frameBufferDrawLine(w2s(engine->plr->position), w2s({ engine->plr->position.X + (cos(offsetAngle) * engine->plr->cameraMaxDistance), engine->plr->position.Y + (sin(offsetAngle) * engine->plr->cameraMaxDistance) }), RGE::RGBA(100, 100, 100)); }
                 }
                 
                 hinf.index = i;
@@ -582,8 +582,8 @@ int main()
                 float apparentSize = dispHeight * engine->plr->cameraFocal / imp.distanceFromOrigin;
                 float height = apparentSize * dispHeight;
 
-                fVec2 barMin = { (2 * rr.index), (dispHeight / 2) - (height / 2.f) };
-                fVec2 barMax = { (2 * rr.index) + 1, (dispHeight / 2) + (height / 2.f) };
+                fVec2 barMin = { (colWidth * rr.index), (dispHeight / 2) - (height / 2.f) };
+                fVec2 barMax = { (colWidth * rr.index) + (colWidth - 1), (dispHeight / 2) + (height / 2.f)};
 
                 float brightness = 1.f;
                 if (lMode == lightMode::dynamicL) {
@@ -591,8 +591,6 @@ int main()
                     brightness = fmin(brightness, 1.5f);
                     brightness = fmax(brightness, 0.1f);
                 }
-
-                RGE::RGBA colour = RGE::RGBA((int)(brightness * (float)imp.surfaceColour.R), (int)(brightness * (float)imp.surfaceColour.G), (int)(brightness * (float)imp.surfaceColour.B));
 
                 RGE::RGETexture* currentTexture = engine->textureMap[imp.surface.textureID];
 
@@ -605,9 +603,6 @@ int main()
                     xOffset = imp.distanceFromLineOrigin;
                 }
 
-                int tpo = xOffset * currentTexture->X;
-                int dataOffset = (tpo * currentTexture->X);
-
                 engine->frameBufferFillRectSegmented(barMin, barMax, currentTexture, xOffset, brightness);
 
                 frameTotalBrightness += brightness;
@@ -619,7 +614,7 @@ int main()
 
             for (RGE::RGESprite& sprite : engine->map->sprites) {
                 if (Mmode == dispMode::map) { continue; }
-                
+
                 fVec2 spriteSize = { (float)engine->textureMap[sprite.textureID]->X * sprite.scale,  (float)engine->textureMap[sprite.textureID]->Y * sprite.scale };
 
                 float angleToSprite = fmod(angleToPoint(engine->plr->position, sprite.position) + 2 * pi, 2 * pi);
@@ -634,7 +629,7 @@ int main()
 
                 if (percentageCovered < -0.5f || percentageCovered > 1.5f) { continue; }
                 
-                int column = floor(percentageCovered * 320.f);
+                int column = floor(percentageCovered * (float)rayCount);
 
                 float dispHeight = engine->getFrameBufferSize().Y;
 
@@ -647,7 +642,7 @@ int main()
                 float height = spriteApparentSize * spriteSize.Y;
                 float boundryHeight = spriteApparentSize * dispHeight;
 
-                float spritePosX = (float)(column * 2);
+                float spritePosX = (float)(column * (float)colWidth);
 
                 fVec2 spriteBoundryMin = { spritePosX - width, (dispHeight / 2) - (boundryHeight / 2.f) };
                 fVec2 spriteBoundryMax = { spritePosX + width, (dispHeight / 2) + (boundryHeight / 2.f) };
@@ -665,7 +660,7 @@ int main()
                 for (float x = spriteMin.X; x < spriteMax.X; x++) {
                     float percent = (x - spriteMin.X) / (spriteMax.X - spriteMin.X);
                     int columnIndex = x / 2;
-                    if (columnIndex >= 0 && columnIndex < 320) {
+                    if (columnIndex >= 0 && columnIndex < rayCount) {
 
                         RGE::raycastResponse rr = frameResponses[columnIndex];
                         if (rr.impactCount > 0) {
@@ -755,7 +750,6 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     switch (msg)
     {
 
-
     case WM_MOUSEWHEEL:
 
         if (Mmode == dispMode::map) {
@@ -820,13 +814,16 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
             g_d3dpp.BackBufferHeight = HIWORD(lParam);
         }
         return 0;
+
     case WM_SYSCOMMAND:
         if ((wParam & 0xfff0) == SC_KEYMENU) // Disable ALT application menu
             return 0;
         break;
+
     case WM_DESTROY:
         ::PostQuitMessage(0);
         return 0;
+
     }
     return ::DefWindowProc(hWnd, msg, wParam, lParam);
 }

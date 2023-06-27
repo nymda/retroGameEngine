@@ -46,10 +46,11 @@ bool comp(RGE::raycastImpact a, RGE::raycastImpact b) {
     return a.distanceFromOrigin > b.distanceFromOrigin;
 }
 
-bool RGE::RGEngine::castRay(fVec2 origin, float angle, float correctionAngle, float maxDistance, raycastResponse* responseData) {
+std::vector<RGE::wall> world = {};
+bool RGE::RGEngine::castRay(fVec2 origin, float angle, float correctionAngle, float maxDistance, bool refreshWorld, raycastResponse* responseData) {
     if (!responseData) { return false; }
+    if (refreshWorld) { world = this->map->build(); }
 
-	std::vector<wall> world = this->map->build();
     fVec2 target = { origin.X + (cos(angle) * maxDistance), origin.Y + (sin(angle) * maxDistance) };
     line ray = { origin, target };
     bool impact = false;
@@ -67,15 +68,18 @@ bool RGE::RGEngine::castRay(fVec2 origin, float angle, float correctionAngle, fl
             rci.surface = w;
             rci.surfaceColour = w.colour;
             rci.position = hit;
-            rci.distanceFromLineOrigin = distance(hit, w.line.p1) / distance(w.line.p1, w.line.p2);
+
             rci.trueDistanceFromLineOrigin = distance(hit, w.line.p1);
+            rci.distanceFromLineOrigin = rci.trueDistanceFromLineOrigin / distance(w.line.p1, w.line.p2);
 
             responseData->impacts.push_back(rci);
             impact = true;
         }
     }
 
-    std::sort(responseData->impacts.begin(), responseData->impacts.end(), comp);
+    if (responseData->impactCount > 1) {
+        std::sort(responseData->impacts.begin(), responseData->impacts.end(), comp);
+    }
 
     return impact;
 }
