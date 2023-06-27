@@ -39,7 +39,7 @@ enum lightMode {
 
 HWND hWnd = 0;
 
-lightMode lMode = lightMode::dynamicL;
+lightMode lMode = lightMode::staticL;
 dispMode Mmode = dispMode::render;
 fVec2 playerVelocity = { 0, 0 };
 
@@ -318,8 +318,8 @@ void renderMap() {
 }
 
 void renderFloorType0() {
-    engine->frameBufferFillRect({ 0, 0 }, { (float)engine->getFrameBufferSize().X, (float)engine->getFrameBufferSize().Y / 2 }, RGE::RGBA(0.5f, 0.5f, 0.5f));
-	engine->frameBufferFillRect({ 0, (float)engine->getFrameBufferSize().Y / 2 }, { (float)engine->getFrameBufferSize().X, (float)engine->getFrameBufferSize().Y }, RGE::RGBA(0.2f, 0.2f, 0.2f));
+    engine->frameBufferFillRect({ 0, 0 }, { (float)engine->getFrameBufferSize().X, (float)engine->getFrameBufferSize().Y / 2 }, RGE::RGBA(0.0f, 0.75f, 1.0f));
+    engine->frameBufferFillRect({ 0, (float)engine->getFrameBufferSize().Y / 2 }, { (float)engine->getFrameBufferSize().X, (float)engine->getFrameBufferSize().Y }, RGE::RGBA(0.50f, 0.70f, 0.40f));
 }
 
 void renderFloorType1(){
