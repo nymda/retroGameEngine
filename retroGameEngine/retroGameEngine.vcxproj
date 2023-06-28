@@ -143,6 +143,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ImguiTemplate_d3d9.cpp" />
+    <ClCompile Include="map.cpp" />
     <ClCompile Include="rgeDrawing.cpp" />
     <ClCompile Include="rgeLogic.cpp" />
     <ClCompile Include="rgeTextures.cpp" />
@@ -150,6 +151,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="fontData.h" />
+    <ClInclude Include="map.h" />
     <ClInclude Include="rgeBase.h" />
     <ClInclude Include="rgeTools.h" />
     <ClInclude Include="stb_image.h" />

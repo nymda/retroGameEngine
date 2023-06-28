@@ -199,7 +199,8 @@ namespace RGE {
 		float cameraLumens = 5.f;
 		float cameraCandella = 50000.f;
 		float cameraFov = (pi / 2.f) / 1.75f;
-
+		int cameraRayCount = 320;
+		
 		bool angleWithinFov(float angle);
 	};
 

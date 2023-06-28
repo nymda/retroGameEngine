@@ -4,6 +4,7 @@
 #include <dinput.h>
 #include <tchar.h>
 #include "rgeBase.h"
+#include "map.h"
 
 #include <shellscalingapi.h>
 
@@ -46,11 +47,6 @@ fVec2 playerVelocity = { 0, 0 };
 float frameTotalBrightness = 0.f;
 float frameBrightnessAverage = 0.f;
 bool overExposure = false;
-
-fVec2 mapOffset = { 0, 0 };
-fVec2 mapScale = { 1, 1 };
-fVec2 mapStartPan = { 0, 0 };
-fVec2 mousePos = { -1, -1 };
 
 fVec2 getWindowMin() {
     RECT min;
@@ -99,39 +95,12 @@ fVec2 a2v_plane(float angle) {
     return plane;
 }
 
-bool mDown = false;
-fVec2 panStart = mousePos;
-bool mapCameraMovement = false;
-
 //fires 60 times per second
 void timerCallback(HWND unnamedParam1, UINT unnamedParam2, UINT_PTR unnamedParam3, DWORD unnamedParam4) {
 
     if (!(hWnd == GetActiveWindow())) { return; }
-
-    if (GetKeyState(VK_LSHIFT) < 0) {
-        mapCameraMovement = true;
-    }
-    else {
-        mapCameraMovement = false;
-    }
-
-    if (GetKeyState(VK_LBUTTON) < 0 && mapCameraMovement) {
-   
-        if (!mDown)
-        {
-            mDown = true;
-            panStart = mousePos;
-        }
-
-        mapOffset.X -= (mousePos.X - panStart.X) / mapScale.X;
-        mapOffset.Y -= (mousePos.Y - panStart.Y) / mapScale.Y;
-
-        panStart.X = mousePos.X;
-        panStart.Y = mousePos.Y;
-	}
-    else {
-        mDown = false;
-    }
+    
+	if (Mmode == dispMode::map) { mapTick(); }
     
     if (GetKeyState(VK_LEFT) < 0) {
         engine->plr->angle -= (pi / 2.f) / 30.f;
@@ -193,19 +162,6 @@ void timerCallback(HWND unnamedParam1, UINT unnamedParam2, UINT_PTR unnamedParam
     }
 }
 
-fVec2 w2s(fVec2 world) {
-    fVec2 r = { 0, 0 };
-	r.X = floorf((world.X - mapOffset.X) * mapScale.X);
-	r.Y = floorf((world.Y - mapOffset.Y) * mapScale.Y);
-	return r;
-}
-
-fVec2 s2w(fVec2 screen) {
-	fVec2 r = { 0,  0 };
-	r.X = (screen.X / mapScale.X) + mapOffset.X;
-	r.Y = (screen.Y / mapScale.Y) + mapOffset.Y;
-	return r;
-}
 
 bool testDistanceFast(fVec2 a, fVec2 b, float distance) {
     if(a.X < b.X - distance) { return false; }
@@ -215,108 +171,7 @@ bool testDistanceFast(fVec2 a, fVec2 b, float distance) {
     return true;
 }
 
-enum mapState {
-    hunting = 0,
-    moving = 1,
-    drawing = 2,
-    deleting = 3
-};
 
-fVec2 mapSelectedNode = { -1.f, -1.f };
-mapState mState = mapState::hunting;
-int mapTextureIndex = 0;
-float mapGridDensity = 0.01f;
-
-void renderMap() {
-    fVec2 screenMin = s2w({ 0.f, 0.f });
-	fVec2 screenMax = s2w({ 640.f, 480.f });
-
-    float stepSize = 1.f / mapGridDensity;
-
-    int startX = std::ceil(screenMin.X / stepSize) * stepSize;
-    int startY = std::ceil(screenMin.Y / stepSize) * stepSize;
-    
-    fVec2 mouseWorld = s2w(mousePos);
-    fVec2 test = w2s(mouseWorld);
-
-    fVec2 nearby = { -1, -1 };
-    float distToNearby = 100000.f;
-    bool hasNearby = false;
-
-    for (float x = startX; x < screenMax.X; x += stepSize) {
-        for (float y = startY; y < screenMax.Y; y += stepSize) {
-            fVec2 point = { x, y };
-
-            float distToPoint = abs(distance(mouseWorld, point));
-            if (distToPoint < distToNearby) {
-                distToNearby = distToPoint;
-                nearby = point;
-                hasNearby = true;
-			}
-
-            fVec2 screenPoint = w2s(point);
-            engine->frameBufferDrawPixel(screenPoint, RGE::RGBA(1.f, 1.f, 1.f));
-        }
-    }
-
-    if (hasNearby && !mapCameraMovement) {
-        fVec2 screenPoint = w2s(nearby);
-        engine->frameBufferFillRect({ screenPoint.X - 5.f, screenPoint.Y - 5.f }, { screenPoint.X + 5.f,  screenPoint.Y + 5.f }, RGE::RGBA(1.f, 0.f, 0.f));
-    }
-
-    if (!mapCameraMovement) {
-        if (GetKeyState(VK_LBUTTON) < 0) {
-            if (mState == mapState::hunting && hasNearby) {
-                mapSelectedNode = nearby;
-                mState = mapState::drawing;
-            }
-            else if (mState == mapState::drawing && hasNearby && !(mapSelectedNode.X == nearby.X && mapSelectedNode.Y == nearby.Y)) {
-
-                RGE::wall newWall;
-                newWall.line.p1 = mapSelectedNode;
-                newWall.line.p2 = nearby;
-                newWall.colour = RGE::RGBA(1.f, 1.f, 1.f);
-                newWall.textureID = 0;
-                engine->map->addStatic(newWall);
-
-                mState = mapState::hunting;
-            }
-        }
-    }
-
-    if (GetKeyState(VK_ESCAPE) < 0) {
-        mapSelectedNode = {-1.f, -1.f };
-        mState = mapState::hunting;
-    }
-
-    if (mState == mapState::drawing) {
-        fVec2 screenPoint = w2s(mapSelectedNode);
-        engine->frameBufferFillRect({ screenPoint.X - 2.5f, screenPoint.Y - 2.5f }, { screenPoint.X + 2.5f,  screenPoint.Y + 2.5f }, RGE::RGBA(0.f, 0.f, 1.f));
-    }
-      
-    //causes lag at very zoomed in zoom levels, idk
-    for (RGE::wall& w : engine->map->build()) {
-        fVec2 p1Int = { w.line.p1.X, w.line.p1.Y };
-        fVec2 p2Int = { w.line.p2.X, w.line.p2.Y };
-        engine->frameBufferDrawLine(w2s(p1Int), w2s(p2Int), w.colour);
-
-    }
-
-    for (RGE::RGESprite& s : engine->map->sprites) {
-        fVec2 spritePos = w2s(s.position);
-		if (spritePos.X < 0 || spritePos.X > 640 || spritePos.Y < 0 || spritePos.Y > 480) { continue; }
-        engine->frameBufferFillRect({ spritePos.X - 2.5f, spritePos.Y - 2.5f }, { spritePos.X + 2.5f,  spritePos.Y + 2.5f }, RGE::RGBA(255, 153, 0));
-    }
-
-    engine->frameBufferFillRect({ mousePos.X - 2.5f, mousePos.Y - 2.5f }, { mousePos.X + 2.5f,  mousePos.Y + 2.5f }, RGE::RGBA(1.f, 1.f, 1.f));
-
-    if (mapCameraMovement) {
-        engine->fontRendererDrawString({ 5, 26 }, "PAN/ZOOM", 1);
-    }
-    else {
-        engine->fontRendererDrawString({ 5, 26 }, "DRAW", 1);
-    }
-}
 
 void renderFloorType0() {
     engine->frameBufferFillRect({ 0, 0 }, { (float)engine->getFrameBufferSize().X, (float)engine->getFrameBufferSize().Y / 2 }, RGE::RGBA(0.0f, 0.75f, 1.0f));
@@ -445,7 +300,7 @@ int main()
     engine->initTextureFromDisk("gojidgun.png", RGE::textureMode::stretch, 5);
     engine->initTextureFromDisk("bush.png", RGE::textureMode::stretch, 6);
     
-    mapOffset = { -640 / 2, -480 / 2 };
+    //mapOffset = { -640 / 2, -480 / 2 };
     
     RGE::wall T;
     T.line = { {-1000, -1000}, {1000, -1000} };
@@ -519,7 +374,7 @@ int main()
             continue;
         }
 
-        mousePos = GetMousePos(hWnd);
+        updateMousePos(GetMousePos(hWnd));
 
         g_pd3dDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
         g_pd3dDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
@@ -534,6 +389,10 @@ int main()
 
             engine->fillFrameBuffer(RGE::RGBA(0, 0, 0));
 
+            if (Mmode == dispMode::map) {
+                drawMap(engine);
+            }
+            
             engine->map->dynamicElements[0].rotation += 0.01f;
 
             frameTotalBrightness = 0.f;
@@ -543,23 +402,15 @@ int main()
             if (Mmode == dispMode::render && lMode == lightMode::dynamicL) { renderFloorType1(); }
             else if (Mmode == dispMode::render && lMode == lightMode::staticL) { renderFloorType0(); }
 
-            int rayCount = 320;
-            float angleStep = engine->plr->cameraFov / rayCount;
-            int colWidth = (engine->getFrameBufferSize().X / rayCount);
+            float angleStep = engine->plr->cameraFov / engine->plr->cameraRayCount;
+            int colWidth = (engine->getFrameBufferSize().X / engine->plr->cameraRayCount);
 
             std::vector<RGE::raycastResponse> frameResponses = {};
 
-            for (int i = 0; i < rayCount; i++) {
+            for (int i = 0; i < engine->plr->cameraRayCount; i++) {
                 RGE::raycastResponse hinf = {};
                 float offsetAngle = (engine->plr->angle - (engine->plr->cameraFov / 2.f)) + (angleStep * (float)i);
-
-                if (engine->castRay(engine->plr->position, offsetAngle, engine->plr->angle, engine->plr->cameraMaxDistance, (i == 0), &hinf)) {
-                    if (Mmode == dispMode::map) { engine->frameBufferDrawLine(w2s(engine->plr->position), w2s(hinf.impacts.back().position), RGE::RGBA(100, 100, 100)); }
-                }
-                else {
-                    if (Mmode == dispMode::map) { engine->frameBufferDrawLine(w2s(engine->plr->position), w2s({ engine->plr->position.X + (cos(offsetAngle) * engine->plr->cameraMaxDistance), engine->plr->position.Y + (sin(offsetAngle) * engine->plr->cameraMaxDistance) }), RGE::RGBA(100, 100, 100)); }
-                }
-                
+                engine->castRay(engine->plr->position, offsetAngle, engine->plr->angle, engine->plr->cameraMaxDistance, (i == 0), &hinf);
                 hinf.index = i;
                 frameResponses.push_back(hinf);
             }
@@ -621,7 +472,7 @@ int main()
 
                 if (percentageCovered < -0.5f || percentageCovered > 1.5f) { continue; }
                 
-                int column = floor(percentageCovered * (float)rayCount);
+                int column = floor(percentageCovered * (float)engine->plr->cameraRayCount);
 
                 float dispHeight = engine->getFrameBufferSize().Y;
 
@@ -652,7 +503,7 @@ int main()
                 for (float x = spriteMin.X; x < spriteMax.X; x++) {
                     float percent = (x - spriteMin.X) / (spriteMax.X - spriteMin.X);
                     int columnIndex = x / 2;
-                    if (columnIndex >= 0 && columnIndex < rayCount) {
+                    if (columnIndex >= 0 && columnIndex < engine->plr->cameraRayCount) {
 
                         RGE::raycastResponse rr = frameResponses[columnIndex];
                         if (rr.impactCount > 0) {
@@ -666,7 +517,7 @@ int main()
             }
             
             if (Mmode == dispMode::map) {
-                renderMap();
+                //renderMap();
             }
 
 			char fps[32];
@@ -743,34 +594,7 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
     case WM_MOUSEWHEEL:
 
-        if (Mmode == dispMode::map) {
-            if (mapCameraMovement) {
-                if (GET_WHEEL_DELTA_WPARAM(wParam) > 0) {
-                    fVec2 mousePreZoom = s2w(mousePos);
-                    mapScale = { mapScale.X * 1.01f, mapScale.Y * 1.01f };
-                    fVec2 mousePostZoom = s2w(mousePos);
-                    mapOffset.X += mousePreZoom.X - mousePostZoom.X;
-                    mapOffset.Y += mousePreZoom.Y - mousePostZoom.Y;
-                }
-                else {
-                    fVec2 mousePreZoom = s2w(mousePos);
-                    mapScale = { mapScale.X * 0.99f, mapScale.Y * 0.99f };
-                    fVec2 mousePostZoom = s2w(mousePos);
-                    mapOffset.X += mousePreZoom.X - mousePostZoom.X;
-                    mapOffset.Y += mousePreZoom.Y - mousePostZoom.Y;
-                }
-            }
-            else {
-                if (GET_WHEEL_DELTA_WPARAM(wParam) > 0) {
-                    mapTextureIndex++;
-                    if (mapTextureIndex > 128) { mapTextureIndex -= 128; }
-                }
-                else {
-                    mapTextureIndex--;
-                    if (mapTextureIndex < 0) { mapTextureIndex += 128; }
-                }
-            }
-		}
+        if (Mmode == dispMode::map) { handleScrollEvent(wParam); }
 
         return 0;
 
@@ -786,15 +610,7 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 
         if (Mmode == dispMode::map) {
-            if (wParam == VK_OEM_PLUS) {
-                if (mapGridDensity < 1.f) { mapGridDensity += 0.01f; }
-
-			}
-            else if (wParam == VK_OEM_MINUS) {
-                if (mapGridDensity > 0.f) {
-                    mapGridDensity -= 0.01f;
-                }
-            }
+            handleKeyEvent(wParam);
         }
 
         return 0;
