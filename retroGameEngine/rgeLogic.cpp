@@ -42,8 +42,20 @@ bool intersect(RGE::line* a, RGE::line* b, fVec2* out) {
     return false;
 }
 
-bool comp(RGE::raycastImpact a, RGE::raycastImpact b) {
+bool comp(RGE::raycastImpact& a, RGE::raycastImpact& b) {
     return a.distanceFromOrigin > b.distanceFromOrigin;
+}
+
+
+bool compSprite(RGE::RGESprite& a, RGE::RGESprite& b) {
+    return a.currentDistanceFromOrigin > b.currentDistanceFromOrigin;
+}
+
+void RGE::RGEngine::recalculateSpriteDistances() {
+    for (RGESprite& s : this->map->sprites) {
+        s.currentDistanceFromOrigin = distance(s.position, this->plr->position);
+    }
+    std::sort(this->map->sprites.begin(), this->map->sprites.end(), compSprite);
 }
 
 std::vector<RGE::wall> world = {};

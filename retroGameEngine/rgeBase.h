@@ -186,6 +186,7 @@ namespace RGE {
 		float scale;
 		int textureID;
 		fVec2 position = { 0.f, 0.f };
+		float currentDistanceFromOrigin = 0.f;
 	};
 	
 	class RGEPlayer {
@@ -193,7 +194,7 @@ namespace RGE {
 		float angle = pi;
 		fVec2 position = { 0.f, 0.f };
 
-		float cameraMaxDistance = 5000.f;
+		float cameraMaxDistance = 50000.f;
 		float cameraFocal = 0.5f;
 		float cameraLumens = 5.f;
 		float cameraCandella = 50000.f;
@@ -247,6 +248,8 @@ namespace RGE {
 			}
 			dynamicElements.push_back(p);
 		}
+
+		void processSpriteOrder();
 
 	};
 
@@ -340,6 +343,9 @@ namespace RGE {
 		void initTextureFromDisk(const char* path, textureMode mode, int textureIndex);
 		void frameBufferFillRectSegmented(fVec2 p1, fVec2 p2, RGETexture* texture, float offset, float brightnessModifier);
 
+		//sprite functions
+		void recalculateSpriteDistances();
+		
 		RGEngine() {
 			initializeFontRenderer();
 			initDefaultTexture();

@@ -304,6 +304,7 @@ void renderMap() {
 
     for (RGE::RGESprite& s : engine->map->sprites) {
         fVec2 spritePos = w2s(s.position);
+		if (spritePos.X < 0 || spritePos.X > 640 || spritePos.Y < 0 || spritePos.Y > 480) { continue; }
         engine->frameBufferFillRect({ spritePos.X - 2.5f, spritePos.Y - 2.5f }, { spritePos.X + 2.5f,  spritePos.Y + 2.5f }, RGE::RGBA(255, 153, 0));
     }
 
@@ -327,7 +328,7 @@ void renderFloorType1(){
     float floorSegmentHeight = (640 / 2.f) / floorSegments;
 
     float floorDistanceMin = 5.f;
-    float floorDistanceMax = 2000.f;
+    float floorDistanceMax = 100.f;
     int floorBrightnessMax = 255 / 3;
     int floorBrightnessMin = 25;
     int floorBrightnessStep = (floorBrightnessMax - floorBrightnessMin) / floorSegments;
@@ -407,6 +408,12 @@ void renderFloorType2() {
     }
 }
 
+float randFloat(float min, float max) {
+	float random = ((float)rand()) / (float)RAND_MAX;
+	float range = max - min;
+	return (random * range) + min;
+}
+
 int main()
 {
     WNDCLASSEX wc = { sizeof(WNDCLASSEX), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(NULL), NULL, NULL, NULL, NULL, _T("RGE"), NULL };
@@ -436,6 +443,7 @@ int main()
     engine->initTextureFromDisk("gobid.png", RGE::textureMode::stretch, 3);
     engine->initTextureFromDisk("katta.png", RGE::textureMode::stretch, 4);
     engine->initTextureFromDisk("gojidgun.png", RGE::textureMode::stretch, 5);
+    engine->initTextureFromDisk("bush.png", RGE::textureMode::stretch, 6);
     
     mapOffset = { -640 / 2, -480 / 2 };
     
@@ -463,31 +471,6 @@ int main()
     engine->map->addStatic(B);
     engine->map->addStatic(L);
     engine->map->addStatic(R);
-    
-    //RGE::wall gT;
-    //gT.line = { {-200, -400}, {-400, -400} };
-    //gT.colour = RGE::RGBA(200, 100, 0, 255);
-    //gT.textureID = 3;
-
-    //RGE::wall gB;
-    //gB.line = { {-400, -200}, {-200, -200} };
-    //gB.colour = RGE::RGBA(200, 100, 0, 255);
-    //gB.textureID = 3;
-
-    //RGE::wall gL;
-    //gL.line = { {-400, -400}, {-400, -200} };
-    //gL.colour = RGE::RGBA(200, 100, 0, 255);
-    //gL.textureID = 4;
-
-    //RGE::wall gR;
-    //gR.line = { {-200, -200}, {-200, -400} };
-    //gR.colour = RGE::RGBA(200, 100, 0, 255);
-    //gR.textureID = 4;
-
-    //engine->map->addStatic(gT);
-    //engine->map->addStatic(gB);
-    //engine->map->addStatic(gL);
-    //engine->map->addStatic(gR); 
 
     engine->map->generateDynamic({ -300.f, -300.f }, pi * 0.25, 150.f, 4, false, 3);
 
@@ -496,6 +479,14 @@ int main()
 	gogibfren.position = { -300.f, 300.f };
     gogibfren.scale = 5.f;
 	engine->map->sprites.push_back(gogibfren);
+
+    for (int i = 0; i < 500; i++) {
+        RGE::RGESprite bush = {};
+        bush.textureID = 6;
+        bush.position = { randFloat(-5000, 5000), randFloat(-5000, 5000)};
+        bush.scale = 5.f;
+        engine->map->sprites.push_back(bush);
+    }
     
     // Initialize Direct3D
     if (!CreateDeviceD3D(hWnd))
@@ -612,9 +603,10 @@ int main()
                 }
             }
 
+			engine->recalculateSpriteDistances();
             for (RGE::RGESprite& sprite : engine->map->sprites) {
                 if (Mmode == dispMode::map) { continue; }
-
+                
                 fVec2 spriteSize = { (float)engine->textureMap[sprite.textureID]->X * sprite.scale,  (float)engine->textureMap[sprite.textureID]->Y * sprite.scale };
 
                 float angleToSprite = fmod(angleToPoint(engine->plr->position, sprite.position) + 2 * pi, 2 * pi);
@@ -668,7 +660,7 @@ int main()
                             if (imp.distanceFromOrigin < distanceToSprite) { continue; }
                         }
 
-                        engine->frameBufferFillRectSegmented({ (float)x, (float)spriteMin.Y }, { (float)x + 1.f, (float)spriteMax.Y }, engine->textureMap[5], percent, brightness);
+                        engine->frameBufferFillRectSegmented({ (float)x, (float)spriteMin.Y }, { (float)x + 1.f, (float)spriteMax.Y }, engine->textureMap[sprite.textureID], percent, brightness);
                     }
                 }
             }
@@ -742,7 +734,6 @@ void CleanupDeviceD3D()
     if (g_pd3dDevice) { g_pd3dDevice->Release(); g_pd3dDevice = NULL; }
     if (g_pD3D) { g_pD3D->Release(); g_pD3D = NULL; }
 }
-
 
 // Win32 message handler
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
