@@ -5,6 +5,7 @@
 #include "rgeBase.h"
 
 enum mapState {
+    none = -1,
     hunting = 0,
     moving = 1,
     drawing = 2,

@@ -200,10 +200,8 @@ namespace RGE {
 	};
 
 	class RGEMap {
-	private:
-		std::vector<wall> staticElements = {};
-
 	public:
+		std::vector<wall> staticElements = {};
 		std::vector<polygon> dynamicElements = {};
 		std::vector<RGESprite> sprites = {};
 		
@@ -243,6 +241,16 @@ namespace RGE {
 				p.vertices.push_back(v);
 			}
 			dynamicElements.push_back(p);
+		}
+
+		void removeStatic(int index) {
+			std::vector<wall> copy = {};
+			for (int i = 0; i < staticElements.size(); i++) {
+				if (i != index) {
+					copy.push_back(staticElements[i]);
+				}
+			}
+			staticElements = copy;
 		}
 
 		void processSpriteOrder();

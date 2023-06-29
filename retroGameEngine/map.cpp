@@ -12,6 +12,7 @@ bool mapCameraMovement = false;
 
 fVec2 mapSelectedNode = { -1.f, -1.f };
 mapState mState = mapState::hunting;
+mapState tmpMState = mapState::none;
 int mapTextureIndex = 0;
 float mapGridDensity = 0.01f;
 
@@ -103,6 +104,7 @@ void drawMap(RGE::RGEngine* engine) {
     float distToNearby = 100000.f;
     bool hasNearby = false;
 
+    //draw the dot / node grid
     for (float x = startX; x < screenMax.X; x += stepSize) {
         for (float y = startY; y < screenMax.Y; y += stepSize) {
             fVec2 point = { x, y };
@@ -119,11 +121,13 @@ void drawMap(RGE::RGEngine* engine) {
         }
     }
 
-    if (hasNearby && !mapCameraMovement) {
+    //draw the square on the nearest node
+    if (hasNearby && !mapCameraMovement && mState != mapState::deleting) {
         fVec2 screenPoint = w2s(nearby);
         engine->frameBufferFillRect({ screenPoint.X - 5.f, screenPoint.Y - 5.f }, { screenPoint.X + 5.f,  screenPoint.Y + 5.f }, RGE::RGBA(1.f, 0.f, 0.f));
     }
 
+    //handle creation of new walls
     if (!mapCameraMovement) {
         if (GetKeyState(VK_LBUTTON) < 0) {
             if (mState == mapState::hunting && hasNearby) {
@@ -144,40 +148,101 @@ void drawMap(RGE::RGEngine* engine) {
         }
     }
 
+    //handle deletion of existing walls
+    if (!mapCameraMovement) {
+        if (GetKeyState(VK_MENU) < 0) {
+            if (tmpMState == mapState::none) { 
+                tmpMState = mState;
+            }
+            mState = mapState::deleting;
+
+            fVec2 mpWorld = s2w(mousePos);
+            fVec2 upper = { mpWorld.X + 25.f, mpWorld.Y + 25.f };
+            fVec2 lower = { mpWorld.X - 25.f, mpWorld.Y - 25.f };
+
+            line upperToLower = { upper, lower };
+            fVec2 outUpperToLower = { -1.f, -1.f };
+
+            fVec2 left = { mpWorld.X - 25.f, mpWorld.Y + 25.f };
+            fVec2 right = { mpWorld.X + 25.f, mpWorld.Y - 25.f };
+
+            line leftToRight = { left, right };
+            fVec2 outLeftToRight = { -1.f, -1.f };
+
+            int intersectingWallIndex = 0;
+            if (GetKeyState(VK_LBUTTON) < 0) {
+                for (RGE::wall& w : engine->map->staticElements) {
+                    if (intersect(&w.line, &upperToLower, &outUpperToLower) || intersect(&w.line, &leftToRight, &outLeftToRight)) {
+						engine->map->removeStatic(intersectingWallIndex);
+					}
+                    intersectingWallIndex++;
+				}
+            
+            }
+        }
+        else {
+            if (tmpMState != mapState::none) {
+				mState = tmpMState;
+                tmpMState = mapState::none;
+			}
+        }
+    }
+
+    //handle escape to clear the current creation-in-progress
 	if (GetKeyState(VK_ESCAPE) < 0) {
 		mapSelectedNode = { -1.f, -1.f };
 		mState = mapState::hunting;
 	}
 
+    //draw the square on the selected node
 	if (mState == mapState::drawing) {
 		fVec2 screenPoint = w2s(mapSelectedNode);
 		engine->frameBufferFillRect({ screenPoint.X - 2.5f, screenPoint.Y - 2.5f }, { screenPoint.X + 2.5f,  screenPoint.Y + 2.5f }, RGE::RGBA(0.f, 0.f, 1.f));
 	}
 
-	//causes lag at very zoomed in zoom levels, idk
+    //draw the walls, frameBufferDrawLine causes lag when drawing large out-of-bounds lines
 	for (RGE::wall& w : engine->map->build()) {
 		fVec2 p1Int = { w.line.p1.X, w.line.p1.Y };
 		fVec2 p2Int = { w.line.p2.X, w.line.p2.Y };
 		engine->frameBufferDrawLine(w2s(p1Int), w2s(p2Int), w.colour);
 	}
 
+    //draw sprite boxes
 	for (RGE::RGESprite& s : engine->map->sprites) {
 		fVec2 spritePos = w2s(s.position);
 		if (spritePos.X < 0 || spritePos.X > 640 || spritePos.Y < 0 || spritePos.Y > 480) { continue; }
 		engine->frameBufferFillRect({ spritePos.X - 2.5f, spritePos.Y - 2.5f }, { spritePos.X + 2.5f,  spritePos.Y + 2.5f }, RGE::RGBA(255, 153, 0));
 	}
 
+    //draw the player
 	drawPlayer(engine);
 
-	engine->frameBufferFillRect({ mousePos.X - 2.5f, mousePos.Y - 2.5f }, { mousePos.X + 2.5f,  mousePos.Y + 2.5f }, RGE::RGBA(1.f, 1.f, 1.f));
+    //draw the mouse cursor
+    if (mState == mapState::hunting || mState == mapState::drawing) {
+        engine->frameBufferFillRect({ mousePos.X - 2.5f, mousePos.Y - 2.5f }, { mousePos.X + 2.5f,  mousePos.Y + 2.5f }, RGE::RGBA(1.f, 1.f, 1.f));
+    }
+    else if (mState == mapState::deleting) {
+        fVec2 mpWorld = s2w(mousePos);
+        fVec2 upper = { mpWorld.X + 25.f, mpWorld.Y + 25.f };
+        fVec2 lower = { mpWorld.X - 25.f, mpWorld.Y - 25.f };
+        fVec2 left = { mpWorld.X - 25.f, mpWorld.Y + 25.f };
+        fVec2 right = { mpWorld.X + 25.f, mpWorld.Y - 25.f };
 
+        engine->frameBufferDrawLine(w2s(upper), w2s(lower), RGE::RGBA(1.f, 0.f, 0.f));
+        engine->frameBufferDrawLine(w2s(left), w2s(right), RGE::RGBA(1.f, 0.f, 0.f));
+    }
+
+    //draw the state and texture index
 	if (mapCameraMovement) {
 		engine->fontRendererDrawString({ 5, 26 }, "PAN/ZOOM", 1);
 	}
+    else if (mState == mapState::deleting) {
+        engine->fontRendererDrawString({ 5, 26 }, "DELETING", 1);
+    }
 	else {
 		engine->fontRendererDrawString({ 5, 26 }, "DRAW", 1);
 		char texindex[32];
-		sprintf_s(texindex, 32, "TEX: %i", mapTextureIndex);
+		sprintf_s(texindex, 32, "[< TEX: %i >]", mapTextureIndex);
 		engine->fontRendererDrawString({ 5, 47 }, texindex, 1);
 	}
 }
@@ -215,11 +280,11 @@ void handleKeyEvent(WPARAM wParam) {
     
     if (wParam == VK_OEM_6) {
         mapTextureIndex++;
-        if (mapTextureIndex > 128) { mapTextureIndex -= 128; }
+        if (mapTextureIndex > 127) { mapTextureIndex = 0; }
     }
 
     if (wParam == VK_OEM_4) {
         mapTextureIndex--;
-        if (mapTextureIndex < 0) { mapTextureIndex += 128; }
+        if (mapTextureIndex < 0) { mapTextureIndex = 127; }
     }
 }
