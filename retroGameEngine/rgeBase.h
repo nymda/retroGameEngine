@@ -115,11 +115,6 @@ namespace RGE {
 		}
 	};
 
-	struct line {
-		fVec2 p1;
-		fVec2 p2;
-	};
-
 	struct wall {
 		line line;
 		RGBA colour;

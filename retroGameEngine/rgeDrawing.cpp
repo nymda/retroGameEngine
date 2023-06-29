@@ -18,6 +18,10 @@ void RGE::RGEngine::frameBufferDrawPixel(fVec2 location, RGBA colour)
 
 void RGE::RGEngine::frameBufferDrawLine(fVec2 p1, fVec2 p2, RGBA colour)
 {
+
+    p1 = { (float)floor(p1.X), (float)floor(p1.Y) };
+    p2 = { (float)floor(p2.X), (float)floor(p2.Y) };
+
     short w = (short)(p2.X - p1.X);
     short h = (short)(p2.Y - p1.Y);
     short dx1 = 0;
@@ -91,7 +95,9 @@ void RGE::RGEngine::frameBufferFillRect(fVec2 p1, fVec2 p2, RGBA colour) {
 	{
 		min.Y = p2.Y;
 		max.Y = p1.Y;
-	}
+	}  
+
+	if (max.X < 0 || max.Y < 0 || min.X > frameBufferSize.X || min.Y > frameBufferSize.Y) { return; }
     
     min.X = fmax(min.X, 0.f);
     min.Y = fmax(min.Y, 0.f);

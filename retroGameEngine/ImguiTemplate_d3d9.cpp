@@ -95,6 +95,42 @@ fVec2 a2v_plane(float angle) {
     return plane;
 }
 
+bool worldToScreen(fVec2* screen, fVec2 world, float height) {
+    float angleToSprite = fmod(angleToPoint(engine->plr->position, world) + 2 * pi, 2 * pi);
+
+    float angleMin = fmod(engine->plr->angle - (engine->plr->cameraFov / 2.f), 2 * pi);
+    float angleMax = fmod(engine->plr->angle + (engine->plr->cameraFov / 2.f), 2 * pi);
+
+    float distance1 = fmod(angleMax - angleMin + 2 * pi, 2 * pi);
+    float distance2 = fmod(angleToSprite - angleMin + 3 * pi, 2 * pi) - pi;
+
+    float percentageCovered = distance2 / distance1;
+
+    if (percentageCovered < -0.5f || percentageCovered > 1.5f) { return false; }
+
+    int column = floor(percentageCovered * (float)engine->plr->cameraRayCount);
+
+    float dispHeight = engine->getFrameBufferSize().Y;
+
+    float distanceToSprite = distance(engine->plr->position, world);
+    if (angleToSprite != 0.f) { distanceToSprite *= cos(engine->plr->angle - angleToSprite); }
+
+    float spriteApparentSize = (dispHeight * engine->plr->cameraFocal) / distanceToSprite;
+
+    float boundryHeight = spriteApparentSize * dispHeight;
+
+    float spritePosX = (float)(column * (float)(engine->getFrameBufferSize().X / engine->plr->cameraRayCount));
+    
+    fVec2 spriteBoundryMin = { spritePosX, (dispHeight / 2) - (boundryHeight / 2.f) };
+    fVec2 spriteBoundryMax = { spritePosX, (dispHeight / 2) + (boundryHeight / 2.f) };
+
+    float spriteY = spriteBoundryMin.Y + ((1.f - height) * (spriteBoundryMax.Y - spriteBoundryMin.Y));
+    
+    *screen = { spritePosX, spriteY };
+
+    return true;
+}
+
 //fires 60 times per second
 void timerCallback(HWND unnamedParam1, UINT unnamedParam2, UINT_PTR unnamedParam3, DWORD unnamedParam4) {
 
@@ -162,7 +198,6 @@ void timerCallback(HWND unnamedParam1, UINT unnamedParam2, UINT_PTR unnamedParam
     }
 }
 
-
 bool testDistanceFast(fVec2 a, fVec2 b, float distance) {
     if(a.X < b.X - distance) { return false; }
     if(a.X > b.X + distance) { return false; }
@@ -170,8 +205,6 @@ bool testDistanceFast(fVec2 a, fVec2 b, float distance) {
     if(a.Y > b.Y + distance) { return false; }
     return true;
 }
-
-
 
 void renderFloorType0() {
     engine->frameBufferFillRect({ 0, 0 }, { (float)engine->getFrameBufferSize().X, (float)engine->getFrameBufferSize().Y / 2 }, RGE::RGBA(0.0f, 0.75f, 1.0f));
@@ -389,10 +422,6 @@ int main()
 
             engine->fillFrameBuffer(RGE::RGBA(0, 0, 0));
 
-            if (Mmode == dispMode::map) {
-                drawMap(engine);
-            }
-            
             engine->map->dynamicElements[0].rotation += 0.01f;
 
             frameTotalBrightness = 0.f;
@@ -516,8 +545,19 @@ int main()
                 }
             }
             
+            //fVec2 screenPosA = { -1, -1 };
+            //fVec2 screenPosB = { -1, -1 };
+            //fVec2 screenPosC = { -1, -1 };
+            //if (worldToScreen(&screenPosA, { 0.f, 0.f }, 0.5f) && worldToScreen(&screenPosB, { 0.f, 100.f }, 0.f) && worldToScreen(&screenPosC, { 100.f, 0 }, 0.f)) {
+            //    engine->frameBufferDrawLine(screenPosA, screenPosB, RGE::RGBA(1.f, 1.f, 1.f));
+            //    
+            //    engine->frameBufferDrawLine(screenPosB, screenPosC, RGE::RGBA(1.f, 1.f, 1.f));
+            //    
+            //    engine->frameBufferDrawLine(screenPosC, screenPosA, RGE::RGBA(1.f, 1.f, 1.f));
+            //}
+
             if (Mmode == dispMode::map) {
-                //renderMap();
+                drawMap(engine);
             }
 
 			char fps[32];

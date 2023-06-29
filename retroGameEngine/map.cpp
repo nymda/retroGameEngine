@@ -65,7 +65,6 @@ void mapTick() {
 }
 
 void drawPlayer(RGE::RGEngine* engine) {
-
     float angleMin = fmod(engine->plr->angle - (engine->plr->cameraFov / 2.f), 2 * pi);
     float angleMax = fmod(engine->plr->angle + (engine->plr->cameraFov / 2.f), 2 * pi);
     
@@ -89,96 +88,98 @@ void drawPlayer(RGE::RGEngine* engine) {
 }
 
 void drawMap(RGE::RGEngine* engine) {
-        fVec2 screenMin = s2w({ 0.f, 0.f });
-        fVec2 screenMax = s2w({ 640.f, 480.f });
+    fVec2 screenMin = s2w({ 0.f, 0.f });
+    fVec2 screenMax = s2w({ (float)engine->getFrameBufferSize().X, (float)engine->getFrameBufferSize().Y});
 
-        float stepSize = 1.f / mapGridDensity;
+    float stepSize = 1.f / mapGridDensity;
 
-        int startX = ceil(screenMin.X / stepSize) * stepSize;
-        int startY = ceil(screenMin.Y / stepSize) * stepSize;
+    int startX = ceil(screenMin.X / stepSize) * stepSize;
+    int startY = ceil(screenMin.Y / stepSize) * stepSize;
 
-        fVec2 mouseWorld = s2w(mousePos);
-        fVec2 test = w2s(mouseWorld);
+    fVec2 mouseWorld = s2w(mousePos);
+    fVec2 test = w2s(mouseWorld);
 
-        fVec2 nearby = { -1, -1 };
-        float distToNearby = 100000.f;
-        bool hasNearby = false;
+    fVec2 nearby = { -1, -1 };
+    float distToNearby = 100000.f;
+    bool hasNearby = false;
 
-        for (float x = startX; x < screenMax.X; x += stepSize) {
-            for (float y = startY; y < screenMax.Y; y += stepSize) {
-                fVec2 point = { x, y };
+    for (float x = startX; x < screenMax.X; x += stepSize) {
+        for (float y = startY; y < screenMax.Y; y += stepSize) {
+            fVec2 point = { x, y };
 
-                float distToPoint = abs(distance(mouseWorld, point));
-                if (distToPoint < distToNearby) {
-                    distToNearby = distToPoint;
-                    nearby = point;
-                    hasNearby = true;
-                }
+            float distToPoint = abs(distance(mouseWorld, point));
+            if (distToPoint < distToNearby) {
+                distToNearby = distToPoint;
+                nearby = point;
+                hasNearby = true;
+            }
+    
+            fVec2 screenPoint = w2s(point);
+            engine->frameBufferDrawPixel(screenPoint, RGE::RGBA(1.f, 1.f, 1.f));
+        }
+    }
 
-                fVec2 screenPoint = w2s(point);
-                engine->frameBufferDrawPixel(screenPoint, RGE::RGBA(1.f, 1.f, 1.f));
+    if (hasNearby && !mapCameraMovement) {
+        fVec2 screenPoint = w2s(nearby);
+        engine->frameBufferFillRect({ screenPoint.X - 5.f, screenPoint.Y - 5.f }, { screenPoint.X + 5.f,  screenPoint.Y + 5.f }, RGE::RGBA(1.f, 0.f, 0.f));
+    }
+
+    if (!mapCameraMovement) {
+        if (GetKeyState(VK_LBUTTON) < 0) {
+            if (mState == mapState::hunting && hasNearby) {
+                mapSelectedNode = nearby;
+                mState = mapState::drawing;
+            }
+            else if (mState == mapState::drawing && hasNearby && !(mapSelectedNode.X == nearby.X && mapSelectedNode.Y == nearby.Y)) {
+
+                RGE::wall newWall;
+                newWall.line.p1 = mapSelectedNode;
+                newWall.line.p2 = nearby;
+                newWall.colour = RGE::RGBA(1.f, 1.f, 1.f);
+                newWall.textureID = mapTextureIndex;
+                engine->map->addStatic(newWall);
+
+                mState = mapState::hunting;
             }
         }
+    }
 
-        if (hasNearby && !mapCameraMovement) {
-            fVec2 screenPoint = w2s(nearby);
-            engine->frameBufferFillRect({ screenPoint.X - 5.f, screenPoint.Y - 5.f }, { screenPoint.X + 5.f,  screenPoint.Y + 5.f }, RGE::RGBA(1.f, 0.f, 0.f));
-        }
+	if (GetKeyState(VK_ESCAPE) < 0) {
+		mapSelectedNode = { -1.f, -1.f };
+		mState = mapState::hunting;
+	}
 
-        if (!mapCameraMovement) {
-            if (GetKeyState(VK_LBUTTON) < 0) {
-                if (mState == mapState::hunting && hasNearby) {
-                    mapSelectedNode = nearby;
-                    mState = mapState::drawing;
-                }
-                else if (mState == mapState::drawing && hasNearby && !(mapSelectedNode.X == nearby.X && mapSelectedNode.Y == nearby.Y)) {
+	if (mState == mapState::drawing) {
+		fVec2 screenPoint = w2s(mapSelectedNode);
+		engine->frameBufferFillRect({ screenPoint.X - 2.5f, screenPoint.Y - 2.5f }, { screenPoint.X + 2.5f,  screenPoint.Y + 2.5f }, RGE::RGBA(0.f, 0.f, 1.f));
+	}
 
-                    RGE::wall newWall;
-                    newWall.line.p1 = mapSelectedNode;
-                    newWall.line.p2 = nearby;
-                    newWall.colour = RGE::RGBA(1.f, 1.f, 1.f);
-                    newWall.textureID = 0;
-                    engine->map->addStatic(newWall);
+	//causes lag at very zoomed in zoom levels, idk
+	for (RGE::wall& w : engine->map->build()) {
+		fVec2 p1Int = { w.line.p1.X, w.line.p1.Y };
+		fVec2 p2Int = { w.line.p2.X, w.line.p2.Y };
+		engine->frameBufferDrawLine(w2s(p1Int), w2s(p2Int), w.colour);
+	}
 
-                    mState = mapState::hunting;
-                }
-            }
-        }
+	for (RGE::RGESprite& s : engine->map->sprites) {
+		fVec2 spritePos = w2s(s.position);
+		if (spritePos.X < 0 || spritePos.X > 640 || spritePos.Y < 0 || spritePos.Y > 480) { continue; }
+		engine->frameBufferFillRect({ spritePos.X - 2.5f, spritePos.Y - 2.5f }, { spritePos.X + 2.5f,  spritePos.Y + 2.5f }, RGE::RGBA(255, 153, 0));
+	}
 
-        if (GetKeyState(VK_ESCAPE) < 0) {
-            mapSelectedNode = { -1.f, -1.f };
-            mState = mapState::hunting;
-        }
+	drawPlayer(engine);
 
-        if (mState == mapState::drawing) {
-            fVec2 screenPoint = w2s(mapSelectedNode);
-            engine->frameBufferFillRect({ screenPoint.X - 2.5f, screenPoint.Y - 2.5f }, { screenPoint.X + 2.5f,  screenPoint.Y + 2.5f }, RGE::RGBA(0.f, 0.f, 1.f));
-        }
+	engine->frameBufferFillRect({ mousePos.X - 2.5f, mousePos.Y - 2.5f }, { mousePos.X + 2.5f,  mousePos.Y + 2.5f }, RGE::RGBA(1.f, 1.f, 1.f));
 
-        //causes lag at very zoomed in zoom levels, idk
-        for (RGE::wall& w : engine->map->build()) {
-            fVec2 p1Int = { w.line.p1.X, w.line.p1.Y };
-            fVec2 p2Int = { w.line.p2.X, w.line.p2.Y };
-            engine->frameBufferDrawLine(w2s(p1Int), w2s(p2Int), w.colour);
-
-        }
-
-        for (RGE::RGESprite& s : engine->map->sprites) {
-            fVec2 spritePos = w2s(s.position);
-            if (spritePos.X < 0 || spritePos.X > 640 || spritePos.Y < 0 || spritePos.Y > 480) { continue; }
-            engine->frameBufferFillRect({ spritePos.X - 2.5f, spritePos.Y - 2.5f }, { spritePos.X + 2.5f,  spritePos.Y + 2.5f }, RGE::RGBA(255, 153, 0));
-        }
-
-        drawPlayer(engine);
-        
-        engine->frameBufferFillRect({ mousePos.X - 2.5f, mousePos.Y - 2.5f }, { mousePos.X + 2.5f,  mousePos.Y + 2.5f }, RGE::RGBA(1.f, 1.f, 1.f));
-
-        if (mapCameraMovement) {
-            engine->fontRendererDrawString({ 5, 26 }, "PAN/ZOOM", 1);
-        }
-        else {
-            engine->fontRendererDrawString({ 5, 26 }, "DRAW", 1);
-        }
+	if (mapCameraMovement) {
+		engine->fontRendererDrawString({ 5, 26 }, "PAN/ZOOM", 1);
+	}
+	else {
+		engine->fontRendererDrawString({ 5, 26 }, "DRAW", 1);
+		char texindex[32];
+		sprintf_s(texindex, 32, "TEX: %i", mapTextureIndex);
+		engine->fontRendererDrawString({ 5, 47 }, texindex, 1);
+	}
 }
 
 void handleScrollEvent(WPARAM wParam) {
@@ -198,16 +199,6 @@ void handleScrollEvent(WPARAM wParam) {
             mapOffset.Y += mousePreZoom.Y - mousePostZoom.Y;
         }
     }
-    else {
-        if (GET_WHEEL_DELTA_WPARAM(wParam) > 0) {
-            mapTextureIndex++;
-            if (mapTextureIndex > 128) { mapTextureIndex -= 128; }
-        }
-        else {
-            mapTextureIndex--;
-            if (mapTextureIndex < 0) { mapTextureIndex += 128; }
-        }
-    }
 }
 
 void handleKeyEvent(WPARAM wParam) {
@@ -215,9 +206,20 @@ void handleKeyEvent(WPARAM wParam) {
         if (mapGridDensity < 1.f) { mapGridDensity += 0.01f; }
 
     }
-    else if (wParam == VK_OEM_MINUS) {
+    
+    if (wParam == VK_OEM_MINUS) {
         if (mapGridDensity > 0.f) {
             mapGridDensity -= 0.01f;
         }
+    }
+    
+    if (wParam == VK_OEM_6) {
+        mapTextureIndex++;
+        if (mapTextureIndex > 128) { mapTextureIndex -= 128; }
+    }
+
+    if (wParam == VK_OEM_4) {
+        mapTextureIndex--;
+        if (mapTextureIndex < 0) { mapTextureIndex += 128; }
     }
 }
