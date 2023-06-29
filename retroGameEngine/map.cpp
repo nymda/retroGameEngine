@@ -176,8 +176,7 @@ void drawMap(RGE::RGEngine* engine) {
 						engine->map->removeStatic(intersectingWallIndex);
 					}
                     intersectingWallIndex++;
-				}
-            
+				}   
             }
         }
         else {
