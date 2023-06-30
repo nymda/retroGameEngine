@@ -336,24 +336,25 @@ int main()
     //mapOffset = { -640 / 2, -480 / 2 };
     
     RGE::wall T;
-    T.line = { {-1000, -1000}, {1000, -1000} };
+    T.line = { {-500, -500}, {500, -500} };
     T.colour = RGE::RGBA(100, 100, 100, 255);
     T.textureID = 1;
 
     RGE::wall B;
-    B.line = { {-1000, 1000}, {1000, 1000} };
+    B.line = { {-500, 500}, {500, 500} };
     B.colour = RGE::RGBA(100, 100, 100, 255);
     B.textureID = 1;
 
     RGE::wall L;
-    L.line = { {-1000, -1000}, {-1000, 1000} };
+    L.line = { {-500, -500}, {-500, 500} };
     L.colour = RGE::RGBA(100, 100, 100, 255);
     L.textureID = 1;
 
     RGE::wall R;
-    R.line = { {1000, -1000}, {1000, 1000} };
+    R.line = { {500, -500}, {500, 500} };
     R.colour = RGE::RGBA(100, 100, 100, 255);
     R.textureID = 1;
+    R.type = RGE::wallType::mirror;
 
     engine->map->addStatic(T);
     engine->map->addStatic(B);

@@ -96,6 +96,12 @@ namespace RGE {
 		tile = 1
 	};
 
+	enum wallType {
+		solid = 0,
+		mirror = 1,
+		portal = 2
+	};
+
 	struct RGETexture {
 		int textureID;
 		RGBA* data;
@@ -119,13 +125,13 @@ namespace RGE {
 		line line;
 		RGBA colour;
 		int textureID = 0;
+		wallType type = wallType::solid;
 	};
 
 	struct vert {
 		float angle;
 		float distance;
 	};
-
 
 	struct polygon {
 		bool reflective = false;
@@ -174,6 +180,8 @@ namespace RGE {
 		int index = 0;
 		int impactCount = 0;
 		std::vector<raycastImpact> impacts;
+		float additionalDistance = 0;
+		int depth = 0;
 	};
 
 	class RGESprite {

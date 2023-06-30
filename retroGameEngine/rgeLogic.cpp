@@ -17,6 +17,20 @@ void RGE::RGEngine::recalculateSpriteDistances() {
     std::sort(this->map->sprites.begin(), this->map->sprites.end(), compSprite);
 }
 
+float calculateNormalAngle(line l) {
+    fVec2 normal = fVec2{ l.p2.X - l.p1.X, l.p2.Y - l.p1.Y };
+    float angle = atan2(normal.Y, normal.X);
+    angle += pi / 2.f;
+    if (angle < 0) angle += pi * 2.f;
+    return angle;
+}
+
+float calculateReflectionAngle(line l, float incomingAngle) {
+    float normalAngle = calculateNormalAngle(l);
+    float angle = normalAngle - (incomingAngle - normalAngle);
+    return angle;
+}
+
 std::vector<RGE::wall> world = {};
 bool RGE::RGEngine::castRay(fVec2 origin, float angle, float correctionAngle, float maxDistance, bool refreshWorld, raycastResponse* responseData) {
     if (!responseData) { return false; }
@@ -25,7 +39,7 @@ bool RGE::RGEngine::castRay(fVec2 origin, float angle, float correctionAngle, fl
     fVec2 target = { origin.X + (cos(angle) * maxDistance), origin.Y + (sin(angle) * maxDistance) };
     line ray = { origin, target };
     bool impact = false;
-
+    
     for (wall& w : world) {
         fVec2 hit = { -1, -1 };
         if (intersect(&ray, &w.line, &hit)) {
@@ -44,12 +58,19 @@ bool RGE::RGEngine::castRay(fVec2 origin, float angle, float correctionAngle, fl
             rci.distanceFromLineOrigin = rci.trueDistanceFromLineOrigin / distance(w.line.p1, w.line.p2);
 
             responseData->impacts.push_back(rci);
+            
             impact = true;
         }
     }
 
     if (responseData->impactCount > 1) {
         std::sort(responseData->impacts.begin(), responseData->impacts.end(), comp);
+    }
+
+    for (int i = responseData->impactCount; i > 0; i--) {
+		if (responseData->impacts[i-1].surface.type == wallType::mirror) {
+
+		}
     }
 
     return impact;
