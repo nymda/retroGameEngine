@@ -68,9 +68,15 @@ bool RGE::RGEngine::castRay(fVec2 origin, float angle, float correctionAngle, fl
     }
 
     for (int i = responseData->impactCount; i > 0; i--) {
-		if (responseData->impacts[i-1].surface.type == wallType::mirror) {
+        switch (responseData->impacts[i - 1].surface.type) {
+            case mirror:
+            
+                break;
+                
+            case portal:
 
-		}
+                break;
+        }
     }
 
     return impact;
