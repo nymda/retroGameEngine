@@ -131,46 +131,49 @@ void RGE::RGEngine::frameBufferDrawCircle(fVec2 center, int radius, RGBA colour)
 	}
 }
 
-int RGE::RGEngine::fontRendererDrawGlyph(fVec2 position, char c, int scale) {
+int RGE::RGEngine::fontRendererDrawGlyph(fVec2 position, char c, float scale) {
     int cmIndex = 0;
 
+    float xStep = (float)charX / ((float)charX * scale);
+    float yStep = (float)charY / ((float)charY * scale);
+
+    float xSize = ((float)charX * scale);
+    float ySize = ((float)charY * scale);
+
     for (char cm : fontMap) {
-        if (cm == c) {
+        if(cm != c){ cmIndex++; continue; }
 
-            //i cant remember what these do
-            iVec2 map = { cmIndex % charY, cmIndex / charY };
-            iVec2 mapPosExpanded = { (map.X * charX) + ((map.X * charX) / charX), (map.Y * charY) + ((map.Y * charY) / charY) };
+        iVec2 map = { cmIndex % charY, cmIndex / charY };
+        iVec2 mapPosExpanded = { (map.X * charX) + ((map.X * charX) / charX), (map.Y * charY) + ((map.Y * charY) / charY) };
+        iVec2 mapPosEnd = { mapPosExpanded.X + charX, mapPosExpanded.Y + charY };
 
-            //pixel
-            for (int y = 0; y < charY; y++) {
-                for (int x = 0; x < charX; x++) {
+        fVec2 samplePos = { 0.f, 0.f };
+        for (int y = 0; y < (int)(round(ySize)); y++) {
+            samplePos.X = 0.f;
+            for (int x = 0; x < (int)(round(xSize)); x++) {
 
-                    //subpixel
-                    for (int spY = 0; spY < scale; spY++) {
-                        for (int spX = 0; spX < scale; spX++) {
+                int sX = (mapPosExpanded.X + samplePos.X);
+                int sY = (mapPosExpanded.Y + samplePos.Y);
 
-                            //actual drawing
-                            int canvasOffset = ((position.Y + (y * scale) + spY) * frameBufferSize.X) + (position.X + (x * scale) + spX);
-                            int fontOffset = ((mapPosExpanded.Y + y) * fontMapSize.X) + (mapPosExpanded.X + x);
-                            if ((canvasOffset <= (frameBufferSize.X * frameBufferSize.Y) && canvasOffset >= 0) && (fontOffset <= (fontMapSize.X * fontMapSize.Y) && fontOffset >= 0)) {
-                                frameBuffer[canvasOffset] = fontData[fontOffset];
-                            }
-                        }
-                    }
-                }
+                int fontOffset = ((sY * fontMapSize.X) + sX);
+
+                frameBufferDrawPixel({ position.X + x, position.Y + y }, fontData[fontOffset]);
+
+                samplePos.X += xStep;
             }
-
-            break;
+            samplePos.Y += yStep;
         }
-        cmIndex++;
+
+        break;
     }
+
     return charX * scale;
 }
 
-int RGE::RGEngine::fontRendererDrawSpacer(fVec2 position, int width, int scale) {
+int RGE::RGEngine::fontRendererDrawSpacer(fVec2 position, int width, float scale) {
 
-    for (int y = 0; y < charY * scale; y++) {
-        for (int x = 0; x < width * scale; x++) {
+    for (int y = 0; y < (int)round(charY * scale); y++) {
+        for (int x = 0; x < (int)round(width * scale); x++) {
             int drawIndex = ((position.Y + y) * frameBufferSize.X) + (position.X + x);
             if (drawIndex <= (frameBufferSize.X * frameBufferSize.Y) && drawIndex >= 0) {
                 frameBuffer[drawIndex] = black;
@@ -181,7 +184,7 @@ int RGE::RGEngine::fontRendererDrawSpacer(fVec2 position, int width, int scale) 
     return width * scale;
 }
 
-int RGE::RGEngine::fontRendererDrawString(fVec2 position, const char* text, int scale) {
+int RGE::RGEngine::fontRendererDrawString(fVec2 position, const char* text, float scale) {
     if (!frameBuffer) { return 0; }
 
     //current offset from the origins X
@@ -196,7 +199,7 @@ int RGE::RGEngine::fontRendererDrawString(fVec2 position, const char* text, int 
     //draw the required characters with 1px between them
     for (int i = 0; i < strlen(text); i++) {
         if ((position.X + offset + (charX * scale)) > frameBufferSize.X || text[i] == L';') {
-            position.Y += 16 * scale;
+            position.Y += charY * scale;
             offset = fontRendererDrawSpacer(position, spacerWidth, scale);
 
             if (text[i] == L';') { continue; }

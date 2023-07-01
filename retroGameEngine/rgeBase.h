@@ -343,9 +343,9 @@ namespace RGE {
 		//void frameBufferFillCircle(iVec2 center, int radius, RGBA colour);
 
 		//font renderer drawing
-		int fontRendererDrawGlyph(fVec2 position, char c, int scale);
-		int fontRendererDrawString(fVec2 position, const char* text, int scale);
-		int fontRendererDrawSpacer(fVec2 position, int width, int scale);
+		int fontRendererDrawGlyph(fVec2 position, char c, float scale);
+		int fontRendererDrawString(fVec2 position, const char* text, float scale);
+		int fontRendererDrawSpacer(fVec2 position, int width, float scale);
 		
 		//raycast functions
 		bool castRay(fVec2 origin, float angle, float correctionAngle, float maxDistance, bool refreshWorld, raycastResponse* responseData);
