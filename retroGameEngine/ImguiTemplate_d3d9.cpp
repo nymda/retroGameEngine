@@ -545,17 +545,6 @@ int main()
                     }
                 }
             }
-            
-            //fVec2 screenPosA = { -1, -1 };
-            //fVec2 screenPosB = { -1, -1 };
-            //fVec2 screenPosC = { -1, -1 };
-            //if (worldToScreen(&screenPosA, { 0.f, 0.f }, 0.5f) && worldToScreen(&screenPosB, { 0.f, 100.f }, 0.f) && worldToScreen(&screenPosC, { 100.f, 0 }, 0.f)) {
-            //    engine->frameBufferDrawLine(screenPosA, screenPosB, RGE::RGBA(1.f, 1.f, 1.f));
-            //    
-            //    engine->frameBufferDrawLine(screenPosB, screenPosC, RGE::RGBA(1.f, 1.f, 1.f));
-            //    
-            //    engine->frameBufferDrawLine(screenPosC, screenPosA, RGE::RGBA(1.f, 1.f, 1.f));
-            //}
 
             if (Mmode == dispMode::map) {
                 drawMap(engine);
