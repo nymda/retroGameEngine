@@ -142,29 +142,29 @@ int RGE::RGEngine::fontRendererDrawGlyph(fVec2 position, char c, float scale) {
 
     for (char cm : fontMap) {
         if(cm != c){ cmIndex++; continue; }
-
-        iVec2 map = { cmIndex % charY, cmIndex / charY };
-        iVec2 mapPosExpanded = { (map.X * charX) + ((map.X * charX) / charX), (map.Y * charY) + ((map.Y * charY) / charY) };
-        iVec2 mapPosEnd = { mapPosExpanded.X + charX, mapPosExpanded.Y + charY };
-
-        fVec2 samplePos = { 0.f, 0.f };
-        for (int y = 0; y < (int)(round(ySize)); y++) {
-            samplePos.X = 0.f;
-            for (int x = 0; x < (int)(round(xSize)); x++) {
-
-                int sX = (mapPosExpanded.X + samplePos.X);
-                int sY = (mapPosExpanded.Y + samplePos.Y);
-
-                int fontOffset = ((sY * fontMapSize.X) + sX);
-
-                frameBufferDrawPixel({ position.X + x, position.Y + y }, fontData[fontOffset]);
-
-                samplePos.X += xStep;
-            }
-            samplePos.Y += yStep;
-        }
-
         break;
+    }
+    if(cmIndex >= sizeof(fontMap)){ cmIndex = 0; }
+
+    iVec2 map = { cmIndex % charY, cmIndex / charY };
+    iVec2 mapPosExpanded = { (map.X * charX) + ((map.X * charX) / charX), (map.Y * charY) + ((map.Y * charY) / charY) };
+    iVec2 mapPosEnd = { mapPosExpanded.X + charX, mapPosExpanded.Y + charY };
+
+    fVec2 samplePos = { 0.f, 0.f };
+    for (int y = 0; y < (int)(round(ySize)); y++) {
+        samplePos.X = 0.f;
+        for (int x = 0; x < (int)(round(xSize)); x++) {
+
+            int sX = (mapPosExpanded.X + samplePos.X);
+            int sY = (mapPosExpanded.Y + samplePos.Y);
+
+            int fontOffset = ((sY * fontMapSize.X) + sX);
+
+            frameBufferDrawPixel({ position.X + x, position.Y + y }, fontData[fontOffset]);
+
+            samplePos.X += xStep;
+        }
+        samplePos.Y += yStep;
     }
 
     return charX * scale;
