@@ -176,7 +176,7 @@ void timerCallback(HWND unnamedParam1, UINT unnamedParam2, UINT_PTR unnamedParam
         playerVelocity.Y += right.Y * 7.5f;
     }
 
-    //this mats is broken, but oh well
+    //this maths is broken, but oh well
 
     if (vectorLength(playerVelocity) > 15.f) {
         playerVelocity = normalise(playerVelocity);
@@ -184,9 +184,15 @@ void timerCallback(HWND unnamedParam1, UINT unnamedParam2, UINT_PTR unnamedParam
         playerVelocity.Y *= 15.f;
     }
 
-    engine->plr->position.X += playerVelocity.X;
-    engine->plr->position.Y += playerVelocity.Y;
-
+    fVec2 playerNextPos = { engine->plr->position.X + playerVelocity.X, engine->plr->position.Y + playerVelocity.Y };
+    line collideTest = { engine->plr->position, playerNextPos };
+    
+    line hitLine = { -1, -1 };
+    if (!engine->checkLine(collideTest, &hitLine, false)) {
+        //todo: implement player "sliding" against walls, more fucking maths, yay
+        engine->plr->position = playerNextPos;
+    }
+   
     playerVelocity.X -= playerVelocity.X / 5.f;
     playerVelocity.Y -= playerVelocity.Y / 5.f;
 
@@ -332,6 +338,7 @@ int main()
     engine->initTextureFromDisk("katta.png", RGE::textureMode::stretch, 4);
     engine->initTextureFromDisk("gojidgun.png", RGE::textureMode::stretch, 5);
     engine->initTextureFromDisk("bush.png", RGE::textureMode::stretch, 6);
+    engine->initTextureFromDisk("window.png", RGE::textureMode::stretch, 7);
     
     //mapOffset = { -640 / 2, -480 / 2 };
     

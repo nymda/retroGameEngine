@@ -3,8 +3,6 @@
 #include <vector>
 #include "rgeTools.h"
 
-const float pi = 3.14159265358979323846f;
-
 /// <summary>
 /// 
 /// the end goal is to enable this to be easily ported to other graphics frameworks, d3d9 is not
@@ -348,8 +346,9 @@ namespace RGE {
 		int fontRendererDrawSpacer(fVec2 position, int width, float scale);
 		
 		//raycast functions
-		bool castRay(fVec2 origin, float angle, float correctionAngle, float maxDistance, bool refreshWorld, raycastResponse* responseData);
-
+		bool castRay(fVec2& origin, float angle, float correctionAngle, float maxDistance, bool refreshWorld, raycastResponse* responseData);
+		bool checkLine(line& test, line* hitWall, bool refreshWorld);
+		
 		//texture functions
 		void initDefaultTexture();
 		void initTextureFromDisk(const char* path, textureMode mode, int textureIndex);

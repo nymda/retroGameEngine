@@ -17,22 +17,28 @@ void RGE::RGEngine::recalculateSpriteDistances() {
     std::sort(this->map->sprites.begin(), this->map->sprites.end(), compSprite);
 }
 
-float calculateNormalAngle(line l) {
-    fVec2 normal = fVec2{ l.p2.X - l.p1.X, l.p2.Y - l.p1.Y };
-    float angle = atan2(normal.Y, normal.X);
-    angle += pi / 2.f;
-    if (angle < 0) angle += pi * 2.f;
-    return angle;
-}
-
-float calculateReflectionAngle(line l, float incomingAngle) {
+float calculateReflectionAngle(line& l, float incomingAngle) {
     float normalAngle = calculateNormalAngle(l);
     float angle = normalAngle - (incomingAngle - normalAngle);
     return angle;
 }
 
 std::vector<RGE::wall> world = {};
-bool RGE::RGEngine::castRay(fVec2 origin, float angle, float correctionAngle, float maxDistance, bool refreshWorld, raycastResponse* responseData) {
+bool RGE::RGEngine::checkLine(line& test, line* hitWall, bool refreshWorld) {
+    if (refreshWorld) { world = this->map->build(); };
+
+    for (wall& w : world) {
+        fVec2 hit = { -1, -1 };
+        if (intersect(&test, &w.line, &hit)) {
+            hitWall = &w.line;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool RGE::RGEngine::castRay(fVec2& origin, float angle, float correctionAngle, float maxDistance, bool refreshWorld, raycastResponse* responseData) {
     if (!responseData) { return false; }
     if (refreshWorld) { world = this->map->build(); }
 

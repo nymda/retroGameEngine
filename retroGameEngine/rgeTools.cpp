@@ -34,6 +34,10 @@ float crossProduct(const fVec2& a, const fVec2& b) {
     return a.X * b.Y - a.Y * b.X;
 }
 
+float dotProduct(const fVec2& a, const fVec2& b) {
+	return a.X * b.X + a.Y * b.Y;
+}
+
 float distance(fVec2 p1, fVec2 p2) {
     return sqrt(pow(p2.X - p1.X, 2) + pow(p2.Y - p1.Y, 2));
 }
@@ -77,4 +81,12 @@ bool intersect(line* a, line* b, fVec2* out) {
     }
 
     return false;
+}
+
+float calculateNormalAngle(line& l) {
+    fVec2 normal = fVec2{ l.p2.X - l.p1.X, l.p2.Y - l.p1.Y };
+    float angle = atan2(normal.Y, normal.X);
+    angle += pi / 2.f;
+    if (angle < 0) angle += pi * 2.f;
+    return angle;
 }
