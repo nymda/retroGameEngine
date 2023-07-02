@@ -114,3 +114,13 @@ void RGE::RGEngine::frameBufferFillRectSegmented(fVec2 p1, fVec2 p2, RGETexture*
 		}
 	}
 }
+
+void RGE::RGEngine::frameBufferDrawTexture(fVec2 position, fVec2 size, int textureIndex) {
+	RGETexture* texture = this->textureMap[textureIndex];	
+	for (int y = 0; y < size.Y; y++) {
+		for (int x = 0; x < size.X; x++) {
+			RGBA colour = texture->fSample({ (float)x / (float)size.X, (float)y / (float)size.Y });
+			if (colour.A > 0) { frameBufferDrawPixel({ position.X + x, position.Y + y }, colour); }		
+		}
+	}
+}

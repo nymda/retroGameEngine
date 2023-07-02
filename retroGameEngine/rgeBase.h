@@ -354,7 +354,8 @@ namespace RGE {
 		void initDefaultTexture();
 		void initTextureFromDisk(const char* path, textureMode mode, int textureIndex);
 		void frameBufferFillRectSegmented(fVec2 p1, fVec2 p2, RGETexture* texture, float offset, float brightnessModifier);
-
+		void frameBufferDrawTexture(fVec2 position, fVec2 size, int textureIndex);
+		
 		//sprite functions
 		void recalculateSpriteDistances();
 		

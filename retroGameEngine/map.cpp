@@ -243,6 +243,7 @@ void drawMap(RGE::RGEngine* engine) {
 		char texindex[32];
 		sprintf_s(texindex, 32, "[< TEX: %i >]", mapTextureIndex);
 		engine->fontRendererDrawString({ 5, 47 }, texindex, 1);
+		engine->frameBufferDrawTexture({ 5, 68 }, {64, 64}, mapTextureIndex);
 	}
 }
 
@@ -272,9 +273,7 @@ void handleKeyEvent(WPARAM wParam) {
     }
     
     if (wParam == VK_OEM_MINUS) {
-        if (mapGridDensity > 0.f) {
-            mapGridDensity -= 0.01f;
-        }
+        if (mapGridDensity > 0.f) { mapGridDensity -= 0.01f; }
     }
     
     if (wParam == VK_OEM_6) {

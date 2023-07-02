@@ -552,7 +552,7 @@ int main()
 
 			char fps[32];
 			sprintf_s(fps, 32, "FPS: %.2f", lastFps);      
-			engine->fontRendererDrawString({ 5, 5 }, fps, 2.f);
+			engine->fontRendererDrawString({ 5, 5 }, fps, 1.f);
             
             //drawing end
 
