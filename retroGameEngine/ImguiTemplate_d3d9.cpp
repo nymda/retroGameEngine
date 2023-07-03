@@ -497,40 +497,20 @@ int main()
             for (RGE::RGESprite& sprite : engine->map->sprites) {
                 if (Mmode == dispMode::map) { continue; }
                 
+                fVec2 spritePos = { 0.f, 0.f };
+                if (!worldToScreen(&spritePos, sprite.position, 0.f)) { continue; }
+                
                 fVec2 spriteSize = { (float)engine->textureMap[sprite.textureID]->X * sprite.scale,  (float)engine->textureMap[sprite.textureID]->Y * sprite.scale };
 
-                float angleToSprite = fmod(angleToPoint(engine->plr->position, sprite.position) + 2 * pi, 2 * pi);
-
-                float angleMin = fmod(engine->plr->angle - (engine->plr->cameraFov / 2.f), 2 * pi);
-                float angleMax = fmod(engine->plr->angle + (engine->plr->cameraFov / 2.f), 2 * pi);
-
-                float distance1 = fmod(angleMax - angleMin + 2 * pi, 2 * pi);
-                float distance2 = fmod(angleToSprite - angleMin + 3 * pi, 2 * pi) - pi;
-
-                float percentageCovered = distance2 / distance1;
-
-                if (percentageCovered < -0.5f || percentageCovered > 1.5f) { continue; }
-                
-                int column = floor(percentageCovered * (float)engine->plr->cameraRayCount);
-
-                float dispHeight = engine->getFrameBufferSize().Y;
-
                 float distanceToSprite = distance(engine->plr->position, sprite.position);
-                if (angleToSprite != 0.f) { distanceToSprite *= cos(engine->plr->angle - angleToSprite); }
 
-                float spriteApparentSize = (dispHeight * engine->plr->cameraFocal) / distanceToSprite;
+                float spriteApparentSize = (engine->getFrameBufferSize().Y * engine->plr->cameraFocal) / distanceToSprite;
 
                 float width = spriteApparentSize * spriteSize.X;
                 float height = spriteApparentSize * spriteSize.Y;
-                float boundryHeight = spriteApparentSize * dispHeight;
 
-                float spritePosX = (float)(column * (float)colWidth);
-
-                fVec2 spriteBoundryMin = { spritePosX - width, (dispHeight / 2) - (boundryHeight / 2.f) };
-                fVec2 spriteBoundryMax = { spritePosX + width, (dispHeight / 2) + (boundryHeight / 2.f) };
-
-                fVec2 spriteMin = { spritePosX - width, spriteBoundryMax.Y - (height * 2.f) };
-                fVec2 spriteMax = { spritePosX + width, spriteBoundryMax.Y };
+                fVec2 spriteMin = { spritePos.X - width, spritePos.Y - (height * 2.f) };
+                fVec2 spriteMax = { spritePos.X + width, spritePos.Y };
 
                 float brightness = 1.f;
                 if (lMode == lightMode::dynamicL) {
