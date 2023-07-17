@@ -95,7 +95,7 @@ fVec2 a2v_plane(float angle) {
     return plane;
 }
 
-bool worldToScreen(fVec2* screen, fVec2 world, float height) {
+bool worldToScreen(fVec2* screen, fVec2 world, float height, float* distanceOut = 0) {
     float angleToSprite = fmod(angleToPoint(engine->plr->position, world) + 2 * pi, 2 * pi);
 
     float angleMin = fmod(engine->plr->angle - (engine->plr->cameraFov / 2.f), 2 * pi);
@@ -113,6 +113,7 @@ bool worldToScreen(fVec2* screen, fVec2 world, float height) {
     float dispHeight = engine->getFrameBufferSize().Y;
 
     float distanceToSprite = distance(engine->plr->position, world);
+    if (distanceOut) { *distanceOut = distanceToSprite; }
     if (angleToSprite != 0.f) { distanceToSprite *= cos(engine->plr->angle - angleToSprite); }
 
     float spriteApparentSize = (dispHeight * engine->plr->cameraFocal) / distanceToSprite;
@@ -500,11 +501,11 @@ int main()
                 if (Mmode == dispMode::map) { continue; }
                 
                 fVec2 spritePos = { 0.f, 0.f };
-                if (!worldToScreen(&spritePos, sprite.position, 0.f)) { continue; }
+                float distanceToSprite = 0.f;
+                if (!worldToScreen(&spritePos, sprite.position, 0.f, &distanceToSprite)) { continue; }
                 
                 fVec2 spriteSize = { (float)engine->textureMap[sprite.textureID]->X * sprite.scale,  (float)engine->textureMap[sprite.textureID]->Y * sprite.scale };
 
-                float distanceToSprite = distance(engine->plr->position, sprite.position);
                 distanceToSprite *= cos(engine->plr->angle - fmod(angleToPoint(engine->plr->position, sprite.position) + 2 * pi, 2 * pi));
                 
                 float spriteApparentSize = (engine->getFrameBufferSize().Y * engine->plr->cameraFocal) / distanceToSprite;
@@ -544,6 +545,9 @@ int main()
 			char fps[32];
 			sprintf_s(fps, 32, "FPS: %.2f", lastFps);      
 			engine->fontRendererDrawString({ 5, 5 }, fps, 1.f);
+            
+            RGE::RGBA transparent = { 1.f, 0.f, 0.f, 0.5f };
+			engine->frameBufferFillRect({ 25, 25 }, { (float)engine->getFrameBufferSize().X - 25, (float)engine->getFrameBufferSize().Y - 25 }, transparent);
             
             //drawing end
 

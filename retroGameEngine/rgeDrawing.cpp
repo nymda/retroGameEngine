@@ -4,7 +4,24 @@
 #include <string.h>
 
 RGE::RGBA blendColours(RGE::RGBA lower, RGE::RGBA upper) {
-	return RGE::RGBA(0.f, 0.f, 0.f, 0.f);
+
+	float lR = ((float)lower.R / 255.f);
+	float lG = ((float)lower.G / 255.f);
+	float lB = ((float)lower.B / 255.f);
+    
+	float uR = ((float)upper.R / 255.f);
+	float uG = ((float)upper.G / 255.f);
+	float uB = ((float)upper.B / 255.f);
+    
+    float bf = ((float)upper.A / 255.f);
+    float ibf = 1.f - bf;
+
+    float pR = (lR * ibf + uR * bf);
+    float pG = (lG * ibf + uG * bf);
+    float pB = (lB * ibf + uB * bf);
+    float pA = fClamp(0.f, 1.f, lower.A + upper.A);
+
+    return RGE::RGBA(pR, pG, pB, pA);
 }
 
 void RGE::RGEngine::frameBufferDrawPixel(fVec2 location, RGBA colour)
@@ -22,7 +39,6 @@ void RGE::RGEngine::frameBufferDrawPixel(fVec2 location, RGBA colour)
 
 void RGE::RGEngine::frameBufferDrawLine(fVec2 p1, fVec2 p2, RGBA colour)
 {
-
     p1 = { (float)floor(p1.X), (float)floor(p1.Y) };
     p2 = { (float)floor(p2.X), (float)floor(p2.Y) };
 
@@ -117,7 +133,13 @@ void RGE::RGEngine::frameBufferFillRect(fVec2 p1, fVec2 p2, RGBA colour) {
 	{
 		for (int x = min.X; x <= max.X; x++)
 		{
-            frameBuffer[(y * frameBufferSize.X) + x] = colour;
+            if (colour.A < 255) {
+                frameBuffer[(y * frameBufferSize.X) + x] = blendColours(frameBuffer[(y * frameBufferSize.X) + x], colour);
+            }
+            else {
+                frameBuffer[(y * frameBufferSize.X) + x] = colour;
+            }
+
 		}
 	}
 }
