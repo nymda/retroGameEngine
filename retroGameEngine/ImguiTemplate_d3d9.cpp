@@ -187,11 +187,13 @@ void timerCallback(HWND unnamedParam1, UINT unnamedParam2, UINT_PTR unnamedParam
     fVec2 playerNextPos = { engine->plr->position.X + playerVelocity.X, engine->plr->position.Y + playerVelocity.Y };
     line collideTest = { engine->plr->position, playerNextPos };
     
-    line hitLine = { -1, -1 };
-    if (!engine->checkLine(collideTest, &hitLine, false)) {
-        //todo: implement player "sliding" against walls, more fucking maths, yay
-        engine->plr->position = playerNextPos;
-    }
+    //line hitLine = { -1, -1 };
+    //if (!engine->checkLine(collideTest, &hitLine, false)) {
+    //    //todo: implement player "sliding" against walls, more fucking maths, yay
+    //    engine->plr->position = playerNextPos;
+    //}
+
+    engine->plr->position = playerNextPos;
    
     playerVelocity.X -= playerVelocity.X / 5.f;
     playerVelocity.Y -= playerVelocity.Y / 5.f;
@@ -430,7 +432,7 @@ int main()
 
             engine->fillFrameBuffer(RGE::RGBA(0, 0, 0));
 
-            engine->map->dynamicElements[0].rotation += 0.01f;
+            engine->map->dynamicElements[0].rotation += (1.f * engine->getDeltaTime());
 
             frameTotalBrightness = 0.f;
             frameBrightnessAverage = 0.f;
@@ -503,7 +505,8 @@ int main()
                 fVec2 spriteSize = { (float)engine->textureMap[sprite.textureID]->X * sprite.scale,  (float)engine->textureMap[sprite.textureID]->Y * sprite.scale };
 
                 float distanceToSprite = distance(engine->plr->position, sprite.position);
-
+                distanceToSprite *= cos(engine->plr->angle - fmod(angleToPoint(engine->plr->position, sprite.position) + 2 * pi, 2 * pi));
+                
                 float spriteApparentSize = (engine->getFrameBufferSize().Y * engine->plr->cameraFocal) / distanceToSprite;
 
                 float width = spriteApparentSize * spriteSize.X;
@@ -514,9 +517,8 @@ int main()
 
                 float brightness = 1.f;
                 if (lMode == lightMode::dynamicL) {
-                    brightness = (engine->plr->cameraLumens / (distanceToSprite * distanceToSprite))* engine->plr->cameraCandella;
-                    brightness = fmin(brightness, 1.5f);
-                    brightness = fmax(brightness, 0.1f);
+                    brightness = (engine->plr->cameraLumens / (distanceToSprite * distanceToSprite)) * engine->plr->cameraCandella;
+                    brightness = fClamp(0.1f, 1.5f, brightness);
                 }
 
                 for (float x = spriteMin.X; x < spriteMax.X; x++) {

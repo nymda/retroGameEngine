@@ -90,3 +90,17 @@ float calculateNormalAngle(line& l) {
     if (angle < 0) angle += pi * 2.f;
     return angle;
 }
+
+float lerp(float min, float max, float val) {
+    return min + (max - min) * val;
+}
+
+float rlerp(float min, float max, float val) {
+    if (val < 0.f) { return min; }
+    if (val > 1.f) { return max; }
+    return (val * max) + min;
+}
+
+float fClamp(float min, float max, float val) {
+    return fmin(fmax(val, min), max);
+}

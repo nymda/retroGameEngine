@@ -29,3 +29,6 @@ float distance(fVec2 p1, fVec2 p2);
 bool intersect(line* a, line* b, fVec2* out);
 float calculateNormalAngle(line& l);
 float dotProduct(const fVec2& a, const fVec2& b);
+float lerp(float min, float max, float val);
+float rlerp(float min, float max, float val);
+float fClamp(float min, float max, float val);

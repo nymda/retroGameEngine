@@ -30,7 +30,7 @@ namespace RGE {
 		unsigned char G = 0;
 		unsigned char B = 0;
 	};
-
+	
 	class RGBA {
 
 	public:
@@ -300,6 +300,23 @@ namespace RGE {
 			return true;
 		}
 
+		bool resizeFrameBuffer(iVec2 size) {
+			RGBA* newFrameBuffer = new RGBA[size.X * size.Y];
+			if (!newFrameBuffer) { return false; }
+			for (int y = 0; y < size.Y; y++) {
+				for (int x = 0; x < size.X; x++) {
+					int iX = ((float)(x / size.X) * frameBufferSize.X);
+					int iY = ((float)(y / size.Y) * frameBufferSize.Y);
+					frameBufferDrawPixel({ (float)x, (float)y }, frameBuffer[(iY * x) + iX]);
+				}
+			}
+
+			RGBA* oldFrameBuffer = frameBuffer;
+			frameBufferSize = size;
+			frameBuffer = newFrameBuffer;
+			delete[] oldFrameBuffer;
+		}
+		
 		RGBA* getFrameBuffer() {
 			return frameBuffer;
 		}
@@ -323,6 +340,10 @@ namespace RGE {
 
 		int getFrameTimeMicros() {
 			return frameTimeMicros;
+		}
+
+		float getDeltaTime() {
+			return frameTimeMicros / 1000000.f;
 		}
 		
 		//primitive drawing

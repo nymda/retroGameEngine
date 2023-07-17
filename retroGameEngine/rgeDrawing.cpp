@@ -3,6 +3,10 @@
 #include <cstdlib>
 #include <string.h>
 
+RGE::RGBA blendColours(RGE::RGBA lower, RGE::RGBA upper) {
+	return RGE::RGBA(0.f, 0.f, 0.f, 0.f);
+}
+
 void RGE::RGEngine::frameBufferDrawPixel(fVec2 location, RGBA colour)
 {
     iVec2 fbSize = this->getFrameBufferSize();
