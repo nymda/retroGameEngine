@@ -3,7 +3,7 @@
 #include <cstdlib>
 #include <string.h>
 
-RGE::RGBA blendColours(RGE::RGBA lower, RGE::RGBA upper) {
+RGE::RGBA blendColours(RGE::RGBA& lower, RGE::RGBA& upper) {
 
 	float lR = ((float)lower.R / 255.f);
 	float lG = ((float)lower.G / 255.f);
