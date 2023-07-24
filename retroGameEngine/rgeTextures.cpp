@@ -105,13 +105,12 @@ void RGE::RGEngine::frameBufferFillRectSegmented(fVec2 p1, fVec2 p2, RGETexture*
 		float yLvl = i * (1.f / (float)texture->Y);
 		RGBA colour = texture->fSample({ offset, yLvl });
 
-		float newR = (float)((float)colour.R / 256.f) * brightnessModifier;
-		float newG = (float)((float)colour.G / 256.f) * brightnessModifier;
-		float newB = (float)((float)colour.B / 256.f) * brightnessModifier;
+		float newR = (float)((float)colour.R / 255.f) * brightnessModifier;
+		float newG = (float)((float)colour.G / 255.f) * brightnessModifier;
+		float newB = (float)((float)colour.B / 255.f) * brightnessModifier;
+		float newA = (float)((float)colour.A / 255.f);
 
-		if (colour.A > 0) {
-			frameBufferFillRect(segmentMin, segmentMax, RGBA(newR, newG, newB));
-		}
+		frameBufferFillRect(segmentMin, segmentMax, RGBA(newR, newG, newB, newA));
 	}
 }
 

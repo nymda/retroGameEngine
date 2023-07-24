@@ -337,11 +337,11 @@ int main()
 
     engine->initTextureFromDisk("bricktexture.png", RGE::textureMode::tile, 1);
     engine->initTextureFromDisk("concrete.png", RGE::textureMode::tile, 2);
-    engine->initTextureFromDisk("gobid.png", RGE::textureMode::stretch, 3);
+    engine->initTextureFromDisk("sadge.png", RGE::textureMode::stretch, 3);
     engine->initTextureFromDisk("katta.png", RGE::textureMode::stretch, 4);
     engine->initTextureFromDisk("gojidgun.png", RGE::textureMode::stretch, 5);
     engine->initTextureFromDisk("bush.png", RGE::textureMode::stretch, 6);
-    engine->initTextureFromDisk("window.png", RGE::textureMode::stretch, 7);
+    engine->initTextureFromDisk("window_R.png", RGE::textureMode::stretch, 7);
     
     //mapOffset = { -640 / 2, -480 / 2 };
     
@@ -546,8 +546,8 @@ int main()
 			sprintf_s(fps, 32, "FPS: %.2f", lastFps);      
 			engine->fontRendererDrawString({ 5, 5 }, fps, 1.f);
             
-            RGE::RGBA transparent = { 1.f, 0.f, 0.f, 0.5f };
-			engine->frameBufferFillRect({ 25, 25 }, { (float)engine->getFrameBufferSize().X - 25, (float)engine->getFrameBufferSize().Y - 25 }, transparent);
+            //RGE::RGBA transparent = { 1.f, 0.f, 0.f, 0.5f };
+			//engine->frameBufferFillRect({ 25, 25 }, { (float)engine->getFrameBufferSize().X - 25, (float)engine->getFrameBufferSize().Y - 25 }, transparent);
             
             //drawing end
 
