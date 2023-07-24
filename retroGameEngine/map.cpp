@@ -88,6 +88,11 @@ void drawPlayer(RGE::RGEngine* engine) {
 	engine->frameBufferDrawLine(playerPos, screenMax, RGE::RGBA(1.f, 0.f, 0.f));
 }
 
+void centerOnPlayer(RGE::RGEngine* engine) {
+	mapOffset.X = engine->plr->position.X - ((engine->getFrameBufferSize().X / mapScale.X) / 2.f);
+	mapOffset.Y = engine->plr->position.Y - ((engine->getFrameBufferSize().Y / mapScale.Y) / 2.f);
+}
+
 void drawMap(RGE::RGEngine* engine) {
     fVec2 screenMin = s2w({ 0.f, 0.f });
     fVec2 screenMax = s2w({ (float)engine->getFrameBufferSize().X, (float)engine->getFrameBufferSize().Y});

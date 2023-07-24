@@ -342,6 +342,7 @@ int main()
     engine->initTextureFromDisk("gojidgun.png", RGE::textureMode::stretch, 5);
     engine->initTextureFromDisk("bush.png", RGE::textureMode::stretch, 6);
     engine->initTextureFromDisk("window.png", RGE::textureMode::stretch, 7);
+    engine->initTextureFromDisk("gojid.png", RGE::textureMode::stretch, 8);
     
     //mapOffset = { -640 / 2, -480 / 2 };
     
@@ -408,6 +409,8 @@ int main()
 
     g_pd3dDevice->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &backbuffer);
 
+	engine->plr->position = { 10000000.f, 10000000.f };
+    
     while (msg.message != WM_QUIT)
     {
 
@@ -546,9 +549,6 @@ int main()
 			sprintf_s(fps, 32, "FPS: %.2f", lastFps);      
 			engine->fontRendererDrawString({ 5, 5 }, fps, 1.f);
             
-            RGE::RGBA transparent = { 1.f, 0.f, 0.f, 0.5f };
-			engine->frameBufferFillRect({ 25, 25 }, { (float)engine->getFrameBufferSize().X - 25, (float)engine->getFrameBufferSize().Y - 25 }, transparent);
-            
             //drawing end
 
             //this takes up over half of the frame time
@@ -632,7 +632,18 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			lMode = lMode == lightMode::dynamicL ? lightMode::staticL : lightMode::dynamicL;
 		}
 
+        if (wParam == 0x43) {
+            RGE::RGESprite newGogib = {};
+            newGogib.position = engine->plr->position;
+            newGogib.textureID = 8;
+            newGogib.scale = 5.f;
+            engine->map->sprites.push_back(newGogib);
+        }
 
+        if (wParam == 0x4E) {
+            centerOnPlayer(engine);
+        }
+        
         if (Mmode == dispMode::map) {
             handleKeyEvent(wParam);
         }
