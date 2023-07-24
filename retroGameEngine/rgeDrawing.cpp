@@ -3,7 +3,7 @@
 #include <cstdlib>
 #include <string.h>
 
-RGE::RGBA blendColours(RGE::RGBA& lower, RGE::RGBA& upper) {
+RGE::RGBA blendColoursSlow(RGE::RGBA& lower, RGE::RGBA& upper) {
 
 	float lR = ((float)lower.R / 255.f);
 	float lG = ((float)lower.G / 255.f);
@@ -19,9 +19,32 @@ RGE::RGBA blendColours(RGE::RGBA& lower, RGE::RGBA& upper) {
     float pR = (lR * ibf + uR * bf);
     float pG = (lG * ibf + uG * bf);
     float pB = (lB * ibf + uB * bf);
-    float pA = fClamp(0.f, 1.f, lower.A + upper.A);
+
+    float pA = fmin(fmax(lower.A + upper.A, 0.f), 1.f);
 
     return RGE::RGBA(pR, pG, pB, pA);
+}
+
+//perform the blend mathematics without using floats
+RGE::RGBA blendColours(RGE::RGBA& lower, RGE::RGBA& upper) {
+    int lR = lower.R;
+	int lG = lower.G;
+	int lB = lower.B;
+
+	int uR = upper.R;
+	int uG = upper.G;
+	int uB = upper.B;
+
+	int bf = upper.A;
+	int ibf = 255 - bf;
+
+	int pR = (lR * ibf + uR * bf) / 255;
+	int pG = (lG * ibf + uG * bf) / 255;
+	int pB = (lB * ibf + uB * bf) / 255;
+
+	int pA = fmin(fmax(lower.A + upper.A, 0), 255);
+
+	return RGE::RGBA(pR, pG, pB, pA);
 }
 
 void RGE::RGEngine::frameBufferDrawPixel(fVec2 location, RGBA colour)
@@ -133,13 +156,22 @@ void RGE::RGEngine::frameBufferFillRect(fVec2 p1, fVec2 p2, RGBA colour) {
 	{
 		for (int x = min.X; x <= max.X; x++)
 		{
-            if (colour.A < 255) {
-                frameBuffer[(y * frameBufferSize.X) + x] = blendColours(frameBuffer[(y * frameBufferSize.X) + x], colour);
-            }
-            else {
-                frameBuffer[(y * frameBufferSize.X) + x] = colour;
-            }
+            if (colour.A >= 255) { frameBuffer[(y * frameBufferSize.X) + x] = colour; }
 
+            //RGE::RGBA* lower = &frameBuffer[index];
+
+            //int bf = colour.A;
+            //int ibf = 255 - bf;
+
+            //int pR = (lower->R * ibf + colour.R * bf) / 255;
+            //int pG = (lower->G * ibf + colour.G * bf) / 255;
+            //int pB = (lower->B * ibf + colour.B * bf) / 255;
+            //int pA = lower->A + colour.A;
+
+            //frameBuffer[index].R = pR;
+            //frameBuffer[index].G = pG;
+            //frameBuffer[index].B = pB;
+            //frameBuffer[index].A = pA > 255 ? 255 : pA;
 		}
 	}
 }

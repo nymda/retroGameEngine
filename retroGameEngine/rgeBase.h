@@ -12,10 +12,10 @@
 /// planned elements:
 /// 
 /// -psuedo 3D renderer
-///		-texture rendering
+///		-texture rendering | done
 ///		-light sources
-///		-realistic camera
-///		-sprites, walls, dynamic objects
+///		-realistic camera | done?
+///		-sprites, walls, dynamic objects | kinda done
 ///		-decals
 /// 
 /// -basic 2D renderer
@@ -142,8 +142,8 @@ namespace RGE {
 			std::vector<wall> lines;
 			for (int i = 0; i < vertices.size(); i++) {
 				wall l;
-				l.line.p1 = { vertices[i].distance * (float)cos(vertices[i].angle + rotation), vertices[i].distance * (float)sin(vertices[i].angle + rotation) };
-				l.line.p2 = { vertices[(i + 1) % vertices.size()].distance * (float)cos(vertices[(i + 1) % vertices.size()].angle + rotation), vertices[(i + 1) % vertices.size()].distance * (float)sin(vertices[(i + 1) % vertices.size()].angle + rotation) };
+				l.line.p1 = { vertices[(i + 1) % vertices.size()].distance * (float)cos(vertices[(i + 1) % vertices.size()].angle + rotation), vertices[(i + 1) % vertices.size()].distance * (float)sin(vertices[(i + 1) % vertices.size()].angle + rotation) };
+				l.line.p2 = { vertices[i].distance * (float)cos(vertices[i].angle + rotation), vertices[i].distance * (float)sin(vertices[i].angle + rotation) };
 				l.line.p1.X *= scale;
 				l.line.p1.Y *= scale;
 				l.line.p2.X *= scale;
