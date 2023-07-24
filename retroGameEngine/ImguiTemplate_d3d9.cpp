@@ -408,8 +408,6 @@ int main()
     g_pd3dDevice->CreateOffscreenPlainSurface(640, 480, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &surface, NULL);
 
     g_pd3dDevice->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &backbuffer);
-
-	engine->plr->position = { 10000000.f, 10000000.f };
     
     while (msg.message != WM_QUIT)
     {
