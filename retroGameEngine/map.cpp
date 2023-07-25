@@ -89,8 +89,8 @@ void drawPlayer(RGE::RGEngine* engine) {
 }
 
 void centerOnPlayer(RGE::RGEngine* engine) {
-	mapOffset.X = engine->plr->position.X - ((engine->getFrameBufferSize().X / mapScale.X) / 2.f);
-	mapOffset.Y = engine->plr->position.Y - ((engine->getFrameBufferSize().Y / mapScale.Y) / 2.f);
+    mapOffset.X = engine->plr->position.X - ((engine->getFrameBufferSize().X / mapScale.X) / 2.f);
+    mapOffset.Y = engine->plr->position.Y - ((engine->getFrameBufferSize().Y / mapScale.Y) / 2.f);
 }
 
 void drawMap(RGE::RGEngine* engine) {
@@ -271,7 +271,7 @@ void handleScrollEvent(WPARAM wParam) {
     }
 }
 
-void handleKeyEvent(WPARAM wParam) {
+void handleKeyEvent(WPARAM wParam, RGE::RGEngine* engine) {
     if (wParam == VK_OEM_PLUS) {
         if (mapGridDensity < 1.f) { mapGridDensity += 0.01f; }
 
@@ -289,5 +289,9 @@ void handleKeyEvent(WPARAM wParam) {
     if (wParam == VK_OEM_4) {
         mapTextureIndex--;
         if (mapTextureIndex < 0) { mapTextureIndex = 127; }
+    }
+
+    if (wParam == 0x4E) {
+        centerOnPlayer(engine);
     }
 }

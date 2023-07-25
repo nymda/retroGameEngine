@@ -640,13 +640,9 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
             newGogib.scale = 5.f;
             engine->map->sprites.push_back(newGogib);
         }
-
-        if (wParam == 0x4E) {
-            centerOnPlayer(engine);
-        }
         
         if (Mmode == dispMode::map) {
-            handleKeyEvent(wParam);
+            handleKeyEvent(wParam, engine);
         }
 
         return 0;

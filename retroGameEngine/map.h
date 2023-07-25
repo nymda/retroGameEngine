@@ -15,6 +15,6 @@ enum mapState {
 void drawMap(RGE::RGEngine* engine);
 void centerOnPlayer(RGE::RGEngine* engine);
 void handleScrollEvent(WPARAM wParam);
-void handleKeyEvent(WPARAM wParam);
+void handleKeyEvent(WPARAM wParam, RGE::RGEngine* engine);
 void updateMousePos(fVec2 newMousePos);
 void mapTick();
